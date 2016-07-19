@@ -16,7 +16,7 @@ import javax.swing.JTextField;
 
 public class InGate extends Thread{
    private int id = -1;
-   private boolean userAutentication = false;
+  
    
    public InGate(int id){
       this.id = id;
@@ -37,23 +37,21 @@ public class InGate extends Thread{
       ActionListener a1 = new ActionListener() {
          public void actionPerformed(ActionEvent e) {
         	 String reservation_code = In_CodeText.getText();
-        	 System.out.println(reservation_code);
+        	 String parking_spot="";
         	 String query = "select * from sure_park.reservation where" +"`"+ "RESERVATION_ID"+"`"+"="+"'"+reservation_code+"'";
         	 try{
         		db.set_statement(db.get_connection().prepareStatement(query));
         		db.set_resultset(db.get_statement().executeQuery());
         		db.get_resultset().next();
-        		System.out.println(db.get_resultset().getString("ASSIGNED_PARKING_SPOT"));
-        		userAutentication=true;
-        		
+        		parking_spot=db.get_resultset().getString("ASSIGNED_PARKING_SPOT");
+        		 JOptionPane.showMessageDialog( null, String.format("Welcome \n parking lot NO: " + parking_spot) );
         	 }
         	 catch(SQLException ex){
         		 System.out.println("SQLException: " + ex.getMessage());
      			System.out.println("SQLState: " + ex.getSQLState());
      			System.out.println("VendorError: " + ex.getErrorCode());
-        	 }
-            if(!userAutentication)
-               JOptionPane.showMessageDialog( null, String.format("Wrong Code. please check again") );
+     			JOptionPane.showMessageDialog( null, String.format("Wrong Code. please check again") );
+        	 }    	   
             
          }
       };
