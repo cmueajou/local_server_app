@@ -1,8 +1,4 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class Database {
 	
@@ -38,6 +34,10 @@ public class Database {
 		 
 	}
 	
+	public Database() {
+		// TODO Auto-generated constructor stub
+	}
+
 	public Connection get_connection(){
 		return this.conn;
 	}

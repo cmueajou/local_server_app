@@ -20,6 +20,7 @@ public class InGate extends Thread{
    
    public InGate(int id){
       this.id = id;
+     
    }
    public void run() {
       final JFrame jframe= new JFrame("InGate");
@@ -45,6 +46,7 @@ public class InGate extends Thread{
         		db.get_resultset().next();
         		parking_spot=db.get_resultset().getString("ASSIGNED_PARKING_SPOT");
         		 JOptionPane.showMessageDialog( null, String.format("Welcome \n parking lot NO: " + parking_spot) );
+        		 // 아두이노에 값을 전달해야한다.
         	 }
         	 catch(SQLException ex){
         		 System.out.println("SQLException: " + ex.getMessage());
@@ -69,7 +71,7 @@ public class InGate extends Thread{
       cp.add(In_p1);
       
       jframe.pack();
-      
+      jframe.setDefaultCloseOperation(jframe.EXIT_ON_CLOSE);
       jframe.setSize(300, 200);
       jframe.setVisible(true);
    }
