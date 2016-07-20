@@ -8,7 +8,7 @@ public class Database {
 	private String db_root;
 	private String db_pw; // ¸â¹ö º¯¼ö
 	private Connection conn; 
-	
+	//sanghyun trace
 	public Database(String _db_addr,String _db_root,String _db_pw){
 		this.db_addr= _db_addr;
 		this.db_root= _db_root;
