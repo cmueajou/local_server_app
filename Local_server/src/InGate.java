@@ -3,6 +3,8 @@ import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.sql.SQLException;
 
 import javax.swing.Box;
@@ -14,12 +16,16 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import java.io.*;
+
 public class InGate extends Thread{
    private int id = -1;
+   OutputStream output;
   
    
-   public InGate(int id){
+   public InGate(int id, OutputStream _output){
       this.id = id;
+      this.output = _output;
      
    }
    public void run() {
@@ -37,23 +43,30 @@ public class InGate extends Thread{
  	 
       ActionListener a1 = new ActionListener() {
          public void actionPerformed(ActionEvent e) {
+        	 
         	 String reservation_code = In_CodeText.getText();
         	 String parking_spot="";
         	 String query = "select * from sure_park.reservation where" +"`"+ "RESERVATION_ID"+"`"+"="+"'"+reservation_code+"'";
         	 try{
+        		 String ctrl_Msg = "Auth";
         		db.set_statement(db.get_connection().prepareStatement(query));
         		db.set_resultset(db.get_statement().executeQuery());
         		db.get_resultset().next();
         		parking_spot=db.get_resultset().getString("ASSIGNED_PARKING_SPOT");
         		 JOptionPane.showMessageDialog( null, String.format("Welcome \n parking lot NO: " + parking_spot) );
-        		 // 아두이노에 값을 전달해야한다.
+        		 output.write(ctrl_Msg.getBytes());
+        		 System.out.println("Control Message transfer");
+        		 output.close();
         	 }
         	 catch(SQLException ex){
         		 System.out.println("SQLException: " + ex.getMessage());
      			System.out.println("SQLState: " + ex.getSQLState());
      			System.out.println("VendorError: " + ex.getErrorCode());
      			JOptionPane.showMessageDialog( null, String.format("Wrong Code. please check again") );
-        	 }    	   
+        	 }
+        	 catch(IOException ex){
+        		 System.out.println(ex.getMessage());
+        	 }
             
          }
       };
