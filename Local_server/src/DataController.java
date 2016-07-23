@@ -5,13 +5,14 @@ import java.io.PipedOutputStream;
 public class DataController {
 
 		   public static void main(String[] args) throws IOException {
-			   PipedInputStream ingate_input = new PipedInputStream();
-			   PipedOutputStream ingate_output = new PipedOutputStream(ingate_input);
+			  
 			   
-			   InGate inGate = new InGate(2,ingate_output);
-			   Server s1 = new Server(ingate_input);
-			   inGate.start();
+			   
+			   Ingate_server s1 = new Ingate_server(1);
+			   CentralServer s2 = new CentralServer(2);
 			   s1.start();
+			   s2.start();
+			  // s1.start();
 			  
 			 //  Server s1 = new Server();
 		      
