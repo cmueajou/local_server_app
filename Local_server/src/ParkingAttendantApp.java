@@ -12,6 +12,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import java.io.*;
 
 public class ParkingAttendantApp implements Runnable{
    protected static final JFrame jframe= new JFrame("Parking-Attendant-App");
@@ -25,9 +26,15 @@ public class ParkingAttendantApp implements Runnable{
    
    protected String ID = "ad1";
    protected String Pin = "1";
+   private String Broadcast="";
+   
+   InputStream pipe_in;
+  // OutputStream pipe_out;
    
    public ParkingAttendantApp(int id){
       this.id = id;
+    //  this.pipe_in=_pipe_in;
+     // this.pipe_out=_pipe_out;
    }
    public void run() {
    

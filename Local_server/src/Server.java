@@ -33,15 +33,12 @@ import java.io.*;
 
 
 class Server extends Thread{
-	InputStream input;
 	
-	Server(InputStream _input){
-		this.input = _input;
-	}
 	
-	public void run(){
+	public synchronized void run(){
 		ServerSocket serverSocket = null;							// Server socket object
 		Socket clientSocket = null;
+		InGate in_gate = new InGate(1);
 		int portNum = 551;
 		int msgNum = 0;												// Message to display from serverMsg[]
    		String inputLine;											// Data from client
@@ -89,8 +86,7 @@ class Server extends Thread{
             try{
     		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
     		BufferedReader in = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
-    		BufferedReader pipe_in = new BufferedReader(new InputStreamReader(input));
-
+    
 			/*****************************************************************************
     		 * Now we can read and write to and from the client. Our protocol is to wait
     		 * for the client to send us strings which we read until we get a "Bye." string
@@ -102,21 +98,13 @@ class Server extends Thread{
     		 * 2: Occupy the Parking Slot //if the server receives this message after receiving an authentication message, 
     		 * 							the message is sent from the same client. 2 slot#
     		 * 3: Release the Parking Slot */ 
-    		
-    		
-    		
-    			if((resMsg = pipe_in.readLine())!=null){
-    				out.write(resMsg);
-    				out.flush();
-    			}
-    				
-    				//pipe_in.close();
-    		
-    			
+    							
     		final char RESERVED='0';
     		final char AUTH='1';
     		final char OCCUPY='2';
     		final char RELEASE='3';
+    		
+    		
     		
  	    	try
  	    	{
@@ -129,7 +117,11 @@ class Server extends Thread{
       					//resMsg = RESEVERD_FUNC();
       					break;
       				case AUTH:
-      					//resMsg = RESEVERD_FUNC();
+      					in_gate.start();
+      					//wait();
+      				    in_gate.join();
+      					resMsg = in_gate.contrl_msg;
+      				
       					break;
       				case OCCUPY:
       					//resMsg = RESEVERD_FUNC();
@@ -160,8 +152,11 @@ class Server extends Thread{
  	    	{
  				System.out.println( "Sending message to client...." );
    				//out.write( serverMsg[msgNum], 0, serverMsg[msgNum].length() );
-				out.write("0\n");
- 				out.flush();
+				//out.write("\n");
+ 				//out.flush();
+ 				out.write(resMsg);
+					System.out.println("transfer complete");
+					out.flush();
 
 				/*if ( msgNum == 0 )
 					msgNum = 1;

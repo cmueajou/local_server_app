@@ -1,5 +1,6 @@
 
 import java.awt.BorderLayout;
+import java.io.*;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -82,7 +83,7 @@ public class PAUI extends ParkingAttendantApp{
       JButton PAUI_p2_parkingLot_infoButton[] = new JButton[4];
       JLabel PAUI_p2_parkingLot_No[] = new JLabel[4];
       
-      for(int i = 0 ; i < 4 ; i++){
+      for(int i = 0 ; i < 4 ; i++){// 여기다가 
          PAUI_p2_parkingLot_space[i] = new JPanel();
          PAUI_p2_parkingLot_space[i].setSize(120,300);
          PAUI_p2_parkingLot_space[i].setBackground(Color.green);
@@ -303,8 +304,8 @@ public class PAUI extends ParkingAttendantApp{
       JPanel PAUI_p3 = new JPanel();
       //PAUI_p3.setLayout(new FlowLayout());
       
-      JLabel PAUI_p3_popup = new JLabel("popup");
-      PAUI_p3.add(PAUI_p3_popup);
+      String popup="";
+          
       
       p.add(PAUI_p1,"North");
       p.add(PAUI_p2,"West");
