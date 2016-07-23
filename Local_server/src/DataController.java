@@ -1,6 +1,4 @@
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.*;
 
 public class DataController {
 
@@ -8,9 +6,8 @@ public class DataController {
 			   PipedInputStream ingate_input = new PipedInputStream();
 			   PipedOutputStream ingate_output = new PipedOutputStream(ingate_input);
 			   
-			   InGate inGate = new InGate(2,ingate_output);
-			   Server s1 = new Server(ingate_input);
-			   inGate.start();
+			   
+			   Server s1 = new Server();
 			   s1.start();
 			  
 			 //  Server s1 = new Server();

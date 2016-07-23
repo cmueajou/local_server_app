@@ -3,6 +3,7 @@ import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.*;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
@@ -23,20 +24,23 @@ public class OutGate extends Thread{
    protected static Container cp = jframe.getContentPane();
    int totalTime;
    double charge;
+   InputStream pipe_out;
    
-   public OutGate(int id){
+   public OutGate(int id, InputStream _pipe_out){
       this.id = id;
+      this.pipe_out = _pipe_out;
    }
    
-   @SuppressWarnings("deprecation")
+
 public void run() {
-   
+      String cntrl_msg="";
       String parking_spot= "2";
       String ID ="";
      
       String query = "select * from sure_park.reservation where" +"`"+ "ASSIGNED_PARKING_SPOT"+"`"+"="+"'"+parking_spot+"'";
       JPanel Out_on = new JPanel();
       JLabel Out_message = new JLabel("Bye!");
+      BufferedReader out = new BufferedReader(new InputStreamReader(pipe_out));
       
       try{
   		db.set_statement(db.get_connection().prepareStatement(query));
@@ -72,7 +76,7 @@ public void run() {
       JLabel Out_charge = new JLabel(Double.toString(charge)+"$");
 
       Box b = new Box(BoxLayout.Y_AXIS);
-      
+      System.out.println("1");
       b.add(Out_message);
       b.add(User);
       b.add(Out_ID);
@@ -82,7 +86,7 @@ public void run() {
       b.add(Out_charge);
       
       Out_on.add(b);
-      
+      System.out.println("2");
       cp.add(Out_on);
       
       jframe.pack();
@@ -90,12 +94,24 @@ public void run() {
       jframe.setSize(300, 200);
       jframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       jframe.setVisible(true);
+      System.out.println("3");
+      try{
+    	 if((cntrl_msg = out.readLine())!=null){
+    		  System.out.println(cntrl_msg);
+    	  }
+    	  
+      }catch(IOException ex){
+    	  System.out.println("pipe error occur");
+    	 System.out.println( ex.getMessage());
+      }
+      System.out.println("4");
       try {
           Thread.sleep(9000);
           System.out.println("g");
        } catch (InterruptedException e) {
           e.printStackTrace();
        }
+      
        jframe.remove(Out_on);
        jframe.revalidate();
        jframe.repaint();

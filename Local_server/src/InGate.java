@@ -19,13 +19,25 @@ import javax.swing.JTextField;
 import java.io.*;
 
 public class InGate extends Thread{
+   InGate result;
    private int id = -1;
-   OutputStream output;
-  
+   static String contrl_msg="";
+   boolean value = false;
    
-   public InGate(int id, OutputStream _output){
+   public InGate get_result(){
+	   return this.result;
+   }
+   InGate(){
+	   
+   }
+  
+   public String get_contrl_msg(){
+	   return this.contrl_msg;
+   }
+   public InGate(int id){
       this.id = id;
-      this.output = _output;
+      result = new InGate();
+      
      
    }
    public void run() {
@@ -42,7 +54,7 @@ public class InGate extends Thread{
       Database db = new Database("localhost","root","1234");
  	 
       ActionListener a1 = new ActionListener() {
-         public void actionPerformed(ActionEvent e) {
+         public synchronized void actionPerformed(ActionEvent e) {
         	 
         	 String reservation_code = In_CodeText.getText();
         	 String parking_spot="";
@@ -54,24 +66,31 @@ public class InGate extends Thread{
         		db.get_resultset().next();
         		parking_spot=db.get_resultset().getString("ASSIGNED_PARKING_SPOT");
         		 JOptionPane.showMessageDialog( null, String.format("Welcome \n parking lot NO: " + parking_spot) );
-        		 output.write(ctrl_Msg.getBytes());
-        		 System.out.println("Control Message transfer");
-        		 output.close();
+        		 contrl_msg = ctrl_Msg; 
+        		 value = true;
+        		 synchronized(this){
+        			 notify();
+        		 }
+        		jframe.dispose();
+        		
+        		
+        		 
         	 }
         	 catch(SQLException ex){
+        		 String ctrl_Msg = "Auth_deny";
         		 System.out.println("SQLException: " + ex.getMessage());
      			System.out.println("SQLState: " + ex.getSQLState());
      			System.out.println("VendorError: " + ex.getErrorCode());
      			JOptionPane.showMessageDialog( null, String.format("Wrong Code. please check again") );
+     			contrl_msg = ctrl_Msg;
         	 }
-        	 catch(IOException ex){
-        		 System.out.println(ex.getMessage());
-        	 }
+        	
             
          }
       };
       
       In_submitButton.addActionListener(a1);
+      
       
       Box b = new Box(BoxLayout.Y_AXIS);
       
@@ -84,9 +103,19 @@ public class InGate extends Thread{
       cp.add(In_p1);
       
       jframe.pack();
-      jframe.setDefaultCloseOperation(jframe.EXIT_ON_CLOSE);
       jframe.setSize(300, 200);
       jframe.setVisible(true);
+      synchronized(this){
+    	  while(value){
+    		  try {
+				this.wait();
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+    	  }
+      }
+      while(true);
    }
 }
 
