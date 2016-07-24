@@ -5,9 +5,11 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.concurrent.BlockingQueue;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -23,8 +25,9 @@ public class PAUI extends ParkingAttendantApp{
 
    Database db;
    
-   public PAUI(int id) {
-      super(id);
+   
+   public PAUI(int id ,BlockingQueue queue) {
+      super(id, queue);
       JPanel p = new JPanel();
       p.setLayout(new BorderLayout());
       db= new Database("localhost","root","1234");

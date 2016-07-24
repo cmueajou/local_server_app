@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 
 public class CentralServer extends Thread {
 	 private int id = -1;
@@ -16,6 +17,28 @@ public class CentralServer extends Thread {
 	      
 	     
 	   }
+	   public String get_reservation_code(){
+		   String code="";
+		   Reserve_code = new Reserve_code();
+		   
+	   }
+	   public void RequestReservation(String user_id, String reserve_time){
+		   Database db_local = new Database("192.168.1.138","root","1234");
+		   Database db_central = new Database("192.168.1.5","root","g0t9d2e2");
+		   String query = "Update"+"`"+"sure_park"+"`"+"."+"`"+"reservation"+"`"+"set"+"`"+"USER_ID"+"`"+"="+"'"+user_id+"'"+","+"`"+"RESERVAION_START_TIME"+"`"+"="+"'"+reserve_time+"'";
+		   try {
+			    db_local.set_statement(db_local.get_connection().prepareStatement(query));
+		        db_local.set_resultset(db_local.get_statement().executeQuery());
+		        System.out.println("local RequestReservation Complete ");
+		        
+		   } 
+		   catch (SQLException e) {
+				System.out.println("get user_id error");
+				e.printStackTrace();
+				
+			} 
+	   }
+	   
 	   public void run() { 
 		   
 		  ServerSocket serverSocket = null;							// Server socket object

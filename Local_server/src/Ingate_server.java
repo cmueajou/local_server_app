@@ -29,6 +29,8 @@
 ******************************************************************************************************************/
 
 import java.net.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.sql.SQLException;
 import java.io.*;
 
@@ -36,14 +38,18 @@ import java.io.*;
 class Ingate_server extends Thread{
 	
 	 private int id = -1;
-	   int portNum;
+	 String parking_state="0000";
+	 BlockingQueue queue;
+	 int parking_lot_buff;
+	 String user_id;
+	   
 	  
 	   
-	   public Ingate_server(int id){
-	      this.id = id;
-	      
-	     
+	   public Ingate_server(int id, BlockingQueue _queue){
+	      this.id = id; 
+	      this.queue = _queue;
 	   }
+	   
 	   public int auth_query(String _reservation_code){
 		   Database db = new Database("localhost","root","1234");
 		   String query = "select * from sure_park.reservation where" +"`"+ "RESERVATION_ID"+"`"+"="+"'"+ _reservation_code+"'";
@@ -62,16 +68,70 @@ class Ingate_server extends Thread{
 				return 0;
 			}
 	   }
-	   public void run() { 
+	   public int update_parking_state(String _parking_state, String _trans_Msg){
+
 		   
-		  ServerSocket serverSocket = null;							// Server socket object
-		   Socket clientSocket = null;
-		   int portNum = 1005;
+		   char []result = _parking_state.toCharArray();
+		   if(_trans_Msg.compareTo("1AUTH")==0){
+		   for(int i=0;i<3;i++){
+			   if(result[i]=='0'){
+				   result[i]='1';
+				   this.parking_lot_buff =i;
+				   return i;
+			   }
+			   
+		   }
+		  
+		   } 
+		   
+		   return -1;
+	   }
+	   	  
+	   public void get_reservation_state(String reservation_code){
+		   Database db = new Database("localhost","root","1234");
+		   String query = "Update"+"RESERVE_STATE"+" from sure_park.reservation set"+"`"+"RESERVE_CODE"+"'"+"where" +"`"+ "RESERVATION_ID"+"`"+"="+"'"+ reservation_code+"'";
+		   try {
+			    db.set_statement(db.get_connection().prepareStatement(query));
+		        db.set_resultset(db.get_statement().executeQuery());
+		        
+		   } 
+		   catch (SQLException e) {
+				System.out.println("update reserve_state error");
+				e.printStackTrace();
+				
+			}
+	   }
+	   public String get_user_id(String reservation_code){
+		   Database db = new Database("localhost","root","1234");
+		   String query = "SELECT"+"USER_ID"+" from sure_park.reservation"+"where"+"`"+"reservation"+"`"+"." +"`"+ "RESERVATION_ID"+"`"+"="+"'"+ reservation_code+"'";
+		   try {
+			    db.set_statement(db.get_connection().prepareStatement(query));
+		        db.set_resultset(db.get_statement().executeQuery());
+		        if((db.get_resultset().next())){
+		        	user_id = db.get_resultset().getString("USER_ID");
+		        	return user_id;
+		        }
+		       
+		        
+		   } 
+		   catch (SQLException e) {
+				System.out.println("get user_id error");
+				e.printStackTrace();
+				
+			}
+		   return "";
+	   }
+	  
+	   public void run() { 
 		   int msgNum = 0;												// Message to display from serverMsg[]
 	       String inputLine;											// Data from client
 		   String resMsg="";
-		   
+		   ServerSocket serverSocket = null;							// Server socket object
+		   Socket clientSocket = null;
 		   String reservation_code="";
+		   int portNum=1005;
+		   
+		   
 			
 			while(true){
 				/*****************************************************************************
@@ -112,29 +172,61 @@ class Ingate_server extends Thread{
 		    	System.out.println ("Connection successful");
 		    	
 	    		try{
-	    	  	BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+	    		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 	      		BufferedReader in = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
 	    		
 	      		if((resMsg = in.readLine())!=null){
 	      			switch(resMsg.charAt(0)){
 	      			case '1':
-	      				reservation_code =resMsg.substring(1);
+	      				
+	      				System.out.println(resMsg);
+	      				reservation_code =resMsg.substring(2,10);
+	      				//System.out.println(reservation_code);
+	      				this.parking_state = resMsg.substring(11,15);
+	      				//System.out.println("Parking state :"+parking_state);
 	      				int result = auth_query(reservation_code);
+	      	
 	      				if(result==1){
-	      					out.write("1Auth\n");
+	      					queue.add("2"+"entering"+get_user_id(reservation_code));//User_id Entrance msg
+	      					int update_parking_msg = update_parking_state(this.parking_state,"1AUTH");
+	      					System.out.println("sending msg : "+"1Auth"+update_parking_msg);
+	      					out.write("1Auth"+update_parking_msg);
 	      					out.flush();
 	      				}
 	      				else{
-	      					out.write("1Auth_deny\n");
+	      					out.write("1Deny\n");
 	      					out.flush();
 	      				}
+	      				break;	      				
 	      			case '2':
-	      				// parking spot 관련 메소드
+	      				char[] buff_arry;
+	      				System.out.println("case2 :"+resMsg);
+	      				out.write("2Occupied\n");
+	      				out.flush();
+	      				buff_arry = this.parking_state.toCharArray();
+	      				buff_arry[((int)resMsg.charAt(5)-48)-1] = '1';
+	      				queue.add("2"+"occupied parking spot #"+(resMsg.charAt(5)-48));
+	      				this.parking_state = new String(buff_arry,0,buff_arry.length);
+	      				queue.add(this.parking_state);
+	      				
+	      				break;
+	 
 	      			case '3':
-	      				// endgate_관련 메소드
+	      				System.out.println("case3 :"+resMsg);
+	      				out.write("3Release\n");
+	      				out.flush();
+	      				buff_arry = this.parking_state.toCharArray();
+	      				buff_arry[((int)resMsg.charAt(5)-48)-1] = '0';
+	      				queue.add("2+Released parking spot #"+(resMsg.charAt(5)-48));
+	      				this.parking_state = new String(buff_arry,0,buff_arry.length);
+	      				queue.add("1"+this.parking_state);
+	      				break;
 	      			default:
+	      				System.out.println(resMsg);
+      					break;
 	      			}
-	      		} 		
+	      		}
+	      		    queue.add(this.parking_state);
 	        		out.close();
 	        		in.close();
 	        		clientSocket.close();

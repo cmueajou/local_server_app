@@ -5,6 +5,12 @@ import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PipedInputStream;
+import java.util.concurrent.BlockingQueue;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -25,12 +31,20 @@ public class ParkingAttendantApp implements Runnable{
    
    protected String ID = "ad1";
    protected String Pin = "1";
+   static String parking_status;
+   static String broadcast;
+   BlockingQueue queue;
+ 
    
-   public ParkingAttendantApp(int id){
+   public ParkingAttendantApp(int id, BlockingQueue _queue){
       this.id = id;
+      this.queue = _queue;
    }
-   public void run() {
    
+  
+   public void run() {
+	   
+	 
       Container cp = jframe.getContentPane();
       
       jframe.setLayout(new BorderLayout());
@@ -59,21 +73,26 @@ public class ParkingAttendantApp implements Runnable{
       jframe.setSize(600, 300);
       jframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       jframe.setVisible(true);
-      
+     
       ActionListener a1 = new ActionListener() {
+    	 
          public void actionPerformed(ActionEvent e) {
+        	 ListenLocal l1 = new ListenLocal();
+        	  l1.start();
             if(AccountText.getText().equals(ID)&& PINText.getText().equals(Pin)){
                jframe.remove(LoginPanel);
-               PAUI UI = new PAUI(id);
+               PAUI UI = new PAUI(id,queue);
                jframe.revalidate();
                jframe.repaint();
+             
                   
                }
                else{
                   JOptionPane.showMessageDialog( null, String.format("Wrong Id or pin number") );
                }
+        	 }
             
-         }
+        
       };
       
       App_submitButton.addActionListener(a1);
@@ -107,5 +126,29 @@ public class ParkingAttendantApp implements Runnable{
       if(state == 0)
          PAUI_p2_parkingLot_space[no].setBackground(Color.green); // ºó°ø°£
    }
-
+   
+   public class ListenLocal extends Thread{
+	  public void run(){
+		  while(true){
+		  try {
+  	  		String Command_arbitor = (String) queue.take();
+  	  		if(Command_arbitor.charAt(1)=='1'){
+  	  			parking_status = Command_arbitor.substring(2);
+  	  		System.out.println("Parking APP :"+ parking_status);
+  	  		}
+  	  		else if(Command_arbitor.charAt(1)=='2'){
+  	  			broadcast = Command_arbitor.substring(2);
+  	  		System.out.println("Parking APP :"+ Command_arbitor);
+  	  		}
+  	  		else{
+  	  		
+  	  		}
+  	  	} catch (InterruptedException e1) {
+  	  		// TODO Auto-generated catch block
+  	  		e1.printStackTrace();
+  	  	}
+		  }
+	   }
+   }
+  
 }
