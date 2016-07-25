@@ -6,6 +6,9 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 public class CentralServer extends Thread {
 	 private int id = -1;
@@ -19,24 +22,39 @@ public class CentralServer extends Thread {
 	   }
 	   public String get_reservation_code(){
 		   String code="";
-		   Reserve_code = new Reserve_code();
+		   Reserve_code r1 = new Reserve_code();
+		   code = r1.nextSessionId();
+		   return code;
 		   
 	   }
-	   public void RequestReservation(String user_id, String reserve_time){
+	   public void RequestReservation(String user_id,String current_time, String reserve_time){
 		   Database db_local = new Database("192.168.1.138","root","1234");
 		   Database db_central = new Database("192.168.1.5","root","g0t9d2e2");
-		   String query = "Update"+"`"+"sure_park"+"`"+"."+"`"+"reservation"+"`"+"set"+"`"+"USER_ID"+"`"+"="+"'"+user_id+"'"+","+"`"+"RESERVAION_START_TIME"+"`"+"="+"'"+reserve_time+"'";
+		   String reservation_code = get_reservation_code();
+		   String query_local = "INSERT INTO"+"`"+"sure_park"+"`"+"."+"`"+"reservation"+
+		                        "("+"`"+"USER_ID"+"`"+","+"`"+"RESERVAION_ID"+"`"+","+
+				                "`"+"RESERVAION_START_TIME"+"`"+","+"`"+"PARKING_START_TIME"+"`"+","
+		                        +"`"+"PARKING_END_TIME"+"`"+","+"`"+"RESERVAION_TIME"+"`"+","+"`"+"CHARGED_FEE"+"`"+","+
+				                "`"+"ASSIGNED_PARKING_SPOT"+"`"+","+"`"+"RESERVE_STATE"+"`"+") VALUES("+"'"+user_id+"'"+
+		                        "'"+reservation_code+"'"+","+"'"+reserve_time+"'"+","+"'"+"'"+","+"'"+"'"+","+"'"+"'"+","+"'"+"'"+","+"'"+"'"+","+"'"+"'"+")";
+		   
+		   String query_central ="Update"+"`"+"sure_park"+"`"+"."+"`"+"reservation"+"`"+"set"+"`"+"RESERVATION_CODE"+"`"+"="+"'"+reservation_code+"'";
 		   try {
-			    db_local.set_statement(db_local.get_connection().prepareStatement(query));
+			    db_local.set_statement(db_local.get_connection().prepareStatement(query_local));
 		        db_local.set_resultset(db_local.get_statement().executeQuery());
 		        System.out.println("local RequestReservation Complete ");
+		        db_central.set_statement(db_central.get_connection().prepareStatement(query_central));
+		        db_central.set_resultset(db_central.get_statement().executeQuery());
+		        System.out.println("central RequestReservation Complete");
 		        
 		   } 
 		   catch (SQLException e) {
 				System.out.println("get user_id error");
 				e.printStackTrace();
 				
-			} 
+			}
+		  
+		   
 	   }
 	   
 	   public void run() { 
@@ -91,9 +109,15 @@ public class CentralServer extends Thread {
 	    		try{
 	    	  	BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 	      		BufferedReader in = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
-	    		
+	      		Calendar calendar = Calendar.getInstance();
+	      		Date date = calendar.getTime();
+	            String today = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date));
 	    		String result ="";
 	    		if((result=in.readLine())!=null){
+	    			String data[];
+	    			data = result.split(" ");
+	    			RequestReservation(data[0],today,data[1].concat(data[2]));
+	    			System.out.println("data[0] : "+data[0]+"data[1] : "+data[1]+"data[2] :"+data[2]);
 	    			System.out.println("result : "+result);
 	    		}
 	    		out.write("Hello Central? C88");

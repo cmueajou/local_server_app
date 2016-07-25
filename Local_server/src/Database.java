@@ -66,14 +66,15 @@ public class Database {
 	public void set_statement(PreparedStatement _stmt){
 		this.stmt = _stmt;
 	}
-	public void set_resultset(ResultSet _rst){
-		this.rs = _rst;
-	}
+	
 	public PreparedStatement get_statement(){
 		return this.stmt;
 	}
 	public ResultSet get_resultset(){
 		return this.rs;
+	}
+	public void set_resultset(ResultSet _rst){
+		this.rs = _rst;
 	}
 	
 	public void finalize(){
@@ -95,5 +96,7 @@ public class Database {
 		}
 		
 	}
+
+	
 	
 }

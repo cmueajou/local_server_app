@@ -31,7 +31,7 @@ public class OutGate extends Thread{
    @SuppressWarnings("deprecation")
 public void run() {
    
-      String parking_spot= "2";
+      String parking_spot= "2";//
       String ID ="";
      
       String query = "select * from sure_park.reservation where" +"`"+ "ASSIGNED_PARKING_SPOT"+"`"+"="+"'"+parking_spot+"'";

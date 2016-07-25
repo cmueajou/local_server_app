@@ -12,6 +12,7 @@ public class DataController {
 			   
 			   Ingate_server s1 = new Ingate_server(1, queue);
 			   CentralServer s2 = new CentralServer(2);
+			   
 			   ParkingAttendantApp app = new ParkingAttendantApp(3,queue);
 			   s1.start();
 			   s2.start();
@@ -22,7 +23,7 @@ public class DataController {
 		      
 	      //ParkingAttendantApp localApp = new ParkingAttendantApp(1);
 		    //  InGate inGate = new InGate(2);
-		     // OutGate outGate = new OutGate(3);
+		    //  OutGate outGate = new OutGate(3);
 		     
 		      //localApp.run();
 		      //inGate.run();
