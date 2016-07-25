@@ -1,5 +1,16 @@
-
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.FlowLayout;
@@ -20,19 +31,24 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 public class ParkingAttendantApp implements Runnable{
-   protected static final JFrame jframe= new JFrame("Parking-Attendant-App");
-   protected static JPanel PAUI_p2_parkingLot_space[] = new JPanel[4];
-   private int id = -1;
-   protected JTextField AccountText;
-   protected JTextField PINText;
-   
-   protected JLabel AccountLabel;
-   protected JLabel PINLabel;
-   
-   protected String ID = "ad1";
-   protected String Pin = "1";
-   static String parking_status;
-   static String broadcast;
+	  protected static final JFrame jframe= new JFrame("Parking-Attendant-App");
+	   protected static JPanel PAUI_p2_parkingLot_space[] = new JPanel[4];
+	   protected static JLabel PAUI_p3_popup = new JLabel("popup");
+	   protected static JPanel PAUI_p2_Info_gatestate_gate[] = new JPanel[2];
+	   protected static JLabel PAUI_p2_info_carNum = new JLabel("Total Car: ");
+	   
+	   private int id = -1;
+	   protected JTextField AccountText;
+	   protected JTextField PINText;
+	   
+	   protected JLabel AccountLabel;
+	   protected JLabel PINLabel;
+	   
+	   protected String ID = "ad1";
+	   protected String Pin = "1";
+
+    String parking_status;
+    String broadcast;
    BlockingQueue queue;
  
    
@@ -70,7 +86,7 @@ public class ParkingAttendantApp implements Runnable{
       
       jframe.pack();
 
-      jframe.setSize(600, 300);
+      jframe.setSize(700, 300);
       jframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       jframe.setVisible(true);
      
@@ -127,18 +143,32 @@ public class ParkingAttendantApp implements Runnable{
          PAUI_p2_parkingLot_space[no].setBackground(Color.green); // ºó°ø°£
    }
    
+   public void popUpMeassage(String popUp){
+	      PAUI_p3_popup.setText(popUp);
+	   }
+	   
+	   public void chageGateState(int inORout, int openclose){
+	      PAUI_p2_Info_gatestate_gate[inORout].setBackground(Color.RED);
+	   }
+	   
+	   public void currentCarNum(int TotalCar){
+	      PAUI_p2_info_carNum.setText("Total Car: " + Integer.toString(TotalCar));
+	   }
+
+   
    public class ListenLocal extends Thread{
 	  public void run(){
 		  while(true){
 		  try {
   	  		String Command_arbitor = (String) queue.take();
-  	  		if(Command_arbitor.charAt(1)=='1'){
-  	  			parking_status = Command_arbitor.substring(2);
+  	  		System.out.println("Command_arbitor : "+ Command_arbitor);
+  	  		if(Command_arbitor.charAt(0)=='1'){
+  	  			parking_status = Command_arbitor.substring(1);
   	  		System.out.println("Parking APP :"+ parking_status);
   	  		}
-  	  		else if(Command_arbitor.charAt(1)=='2'){
-  	  			broadcast = Command_arbitor.substring(2);
-  	  		System.out.println("Parking APP :"+ Command_arbitor);
+  	  		else if(Command_arbitor.charAt(0)=='2'){
+  	  			broadcast = Command_arbitor.substring(1);
+  	  		System.out.println("Parking Broadcast :"+ broadcast);
   	  		}
   	  		else{
   	  		

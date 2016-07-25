@@ -47,12 +47,13 @@ class Ingate_server extends Thread{
 	 BlockingQueue queue;
 	 int parking_lot_buff;
 	 String user_id;
-	   
+	
 	  
 	   
 	   public Ingate_server(int id, BlockingQueue _queue){
 	      this.id = id; 
 	      this.queue = _queue;
+	
 	   }
 	   
 	   public int auth_query(String _reservation_code){
@@ -80,8 +81,6 @@ class Ingate_server extends Thread{
 		   if(_trans_Msg.compareTo("1AUTH")==0){
 		   for(int i=0;i<3;i++){
 			   if(result[i]=='0'){
-				   result[i]='1';
-				   this.parking_lot_buff =i;
 				   return i;
 			   }
 			   
@@ -90,6 +89,44 @@ class Ingate_server extends Thread{
 		   } 
 		   
 		   return -1;
+	   }
+	   public int get_charge_time(String _end_time, int parking_spot){
+		   Database db = new Database(local_server,"root","1234");
+		   String query = "Select"+"`"+"PARKING_START_TIME"+"`"+"from"+"`"+"sure_park"+"`"+"."+"`"+"reservation"+"`"+"where"+ "`"+"ASSIGNED_PARKING_SPOT"+"`"+"="+parking_spot;
+           try{
+			   
+			   System.out.println("query :" + query);
+			   
+		   		db.set_statement(db.get_connection().prepareStatement(query));
+		        db.set_resultset(db.get_statement().executeQuery());
+		        if(db.get_resultset().next()){
+		         Timestamp d_start = db.get_resultset().getTimestamp("PARKING_START_TIME");
+		        
+		        System.out.println("DB resultset setting complete");
+		        System.out.println("d_start setting");
+		        String starttime = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(d_start));
+		        System.out.println("starttime :"+starttime);
+		        String[] start_data = starttime.split(" ");
+		        System.out.println(start_data[0]);
+		        System.out.println(start_data[1]);
+		        String[] start_date = start_data[0].split("-");
+		        System.out.println(start_date[0]+" "+start_date[1]+" "+start_date[2]);
+		        String[] start_time = start_data[1].split(":");
+		        System.out.println(start_time[0]+" "+start_time[1]+" "+start_time[2]);
+		        String[] end_data = _end_time.split(" ");
+		        System.out.println("end_data :"+end_data[0]+" "+end_data[1]);
+		        String[] end_date = end_data[0].split("-");
+		        System.out.println(end_date[0]+" "+end_date[1]+" "+end_date[2]);
+		        String[] end_time = end_data[1].split(":");
+		        System.out.println(end_time[0]+" "+end_time[1]+" "+end_time[2]);
+		        int charge_time = (((Integer.parseInt(end_date[2])-Integer.parseInt(start_date[2]))*24*60))+(((Integer.parseInt(end_time[0]))-(Integer.parseInt(start_time[0])))*60)+(Integer.parseInt(end_time[1])-Integer.parseInt(start_time[1]));
+		        return charge_time;
+		        }
+		        return 0;
+		   	    }catch(Exception ex){
+		   		 System.out.println(ex.getMessage());
+		   		 return 0;
+		   	  }   
 	   }
 	   public float calculate_charge(String _end_time, int parking_spot){
 		   System.out.println("_end_time :"+_end_time);
@@ -151,7 +188,8 @@ class Ingate_server extends Thread{
 
 	   public String get_user_id(String reservation_code){
 		   Database db = new Database(local_server,"root","1234");
-		   String query = "SELECT"+"USER_ID"+" from sure_park.reservation"+"where"+"`"+"reservation"+"`"+"." +"`"+ "RESERVATION_ID"+"`"+"="+"'"+ reservation_code+"'";
+		   String query = "SELECT"+" USER_ID"+" from sure_park.reservation"+" where"+"`"+ "RESERVATION_ID"+"`"+"="+"'"+ reservation_code+"'";
+		   System.out.println(query);
 		   try {
 			    db.set_statement(db.get_connection().prepareStatement(query));
 		        db.set_resultset(db.get_statement().executeQuery());
@@ -204,10 +242,12 @@ class Ingate_server extends Thread{
 		   int msgNum = 0;												// Message to display from serverMsg[]
 	       String inputLine;											// Data from client
 		   String resMsg="";
-		   ServerSocket serverSocket = null;							// Server socket object
-		   Socket clientSocket = null;
 		   String reservation_code="";
-		   int portNum=1005;
+		   ServerSocket serverSocket = null;							// Server socket object
+			  Socket clientSocket = null;
+			  int portNum = 1005;
+				
+			   
 		   
 		   
 			
@@ -216,18 +256,22 @@ class Ingate_server extends Thread{
 	    	 	* First we instantiate the server socket. The ServerSocket class also does
 	    	 	* the listen()on the specified port.
 			 	*****************************************************************************/
-	    		try
-	    		{
-	        		serverSocket = new ServerSocket(portNum);
-	        		System.out.println ( "\n\nWaiting for connection on port " + portNum + "." );
-	        	}
-	    		catch (IOException e)
-	        	{
-	        		System.err.println( "\n\nCould not instantiate socket on port: " + portNum + " " + e);
-	        		System.exit(1);
-	        	}
+			  	try
+				{
+		    		serverSocket = new ServerSocket(portNum);
+		    		System.out.println ( "\n\nWaiting for connection on port " + portNum + "." );
+		    	}
+				catch (IOException e)
+		    	{
+					
+		    		System.err.println( "\n\nCould not instantiate socket on port: " + portNum + " " + e);
+		    		System.out.println(e.getMessage());
+		    		System.exit(1);
+		    	}
+			  	
+		
 
-				/*****************************************************************************
+				/******************************1***********************************************
 	    	 	* If we get to this point, a client has connected. Now we need to
 	    	 	* instantiate a client socket. Once its instantiated, then we accept the
 	    	 	* connection.
@@ -235,6 +279,7 @@ class Ingate_server extends Thread{
 
 		    	try
 	    		{
+		    
 	        		clientSocket = serverSocket.accept();
 	        	}
 	    		catch (Exception e)
@@ -252,11 +297,11 @@ class Ingate_server extends Thread{
 	    		try{
 	    		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 	      		BufferedReader in = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
-	    		
+	    		System.out.println("Initiate Buffer complete");
 	      		if((resMsg = in.readLine())!=null){
+	      			System.out.println("resMsg readline complete");
 	      			switch(resMsg.charAt(0)){
-	      			case '1':
-	      				
+	      			case '1': // In front of enterance.
 	      				System.out.println(resMsg);
 	      				reservation_code =resMsg.substring(2,10);
 	      				//System.out.println(reservation_code);
@@ -265,10 +310,12 @@ class Ingate_server extends Thread{
 	      				int result = auth_query(reservation_code);
 	      	
 	      				if(result==1){
-	      					queue.add("2"+"entering"+get_user_id(reservation_code));//User_id Entrance msg
+	      					queue.add("1"+ " "+parking_state);
+	      					String _1user_id = get_user_id(reservation_code);
+	      					queue.add("2"+" "+"entering"+" "+ _1user_id);//User_id Entrance msg
 	      					int update_parking_msg = update_parking_state(this.parking_state,"1AUTH");
 	      					System.out.println("sending msg : "+"1Auth"+update_parking_msg);
-	      					out.write("1Auth"+update_parking_msg);
+	      					out.write("1Auth"+update_parking_msg+" "+_1user_id);
 	      					out.flush();
 	      				}
 	      				else{
@@ -279,13 +326,14 @@ class Ingate_server extends Thread{
 	      			case '2':
 	      				char[] buff_arry;
 	      				System.out.println("case2 :"+resMsg);
+	      				
 	      				out.write("2Occupied\n");
 	      				out.flush();
 	      				buff_arry = this.parking_state.toCharArray();
 	      				buff_arry[((int)resMsg.charAt(5)-48)-1] = '1';
 	      				queue.add("2"+"occupied parking spot #"+(resMsg.charAt(5)-48));
 	      				this.parking_state = new String(buff_arry,0,buff_arry.length);
-	      				queue.add(this.parking_state);
+	      				queue.add("1"+" "+this.parking_state);
 	      				
 	      				break;
 	 
@@ -295,30 +343,32 @@ class Ingate_server extends Thread{
 	      				out.flush();
 	      				buff_arry = this.parking_state.toCharArray();
 	      				buff_arry[((int)resMsg.charAt(5)-48)-1] = '0';
-	      				queue.add("2+Released parking spot #"+(resMsg.charAt(5)-48));
+	      				queue.add("2"+" "+"Released parking spot #"+(resMsg.charAt(5)-48));
 	      				this.parking_state = new String(buff_arry,0,buff_arry.length);
-	      				queue.add("1"+this.parking_state);
+	      				queue.add("1"+" "+this.parking_state);
 	      				break;
+	      			case '4':
+	      				queue.add("2 Close_door and Parking contract complete");
 	      			case '5':
 	      				resMsg = resMsg.substring(3);
-	      				System.out.println("case4 :"+resMsg);
-	      				out.write("5Exit\n");
-	      				out.flush();
+	      				//System.out.println("case5 :"+resMsg);
 	      				String[] data = resMsg.split(" ");
 	      				Calendar cal =  Calendar.getInstance();
 	      				Date date = cal.getTime();
 	      				String today = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date));
-	      				System.out.println("today:"+today);
-	      				System.out.println("parking_lot : "+((int)resMsg.charAt(3)-48));
+	      				//System.out.println("today:"+today);
+	      				//System.out.println("parking_lot : "+((int)resMsg.charAt(3)-48));
 	      				float cal_charge = calculate_charge(today,(int)resMsg.charAt(3)-48);
-	      				System.out.println("cal_charge ="+ cal_charge);
+	      				int charge_time = get_charge_time(today,(int)resMsg.charAt(3)-48);
+	      				//System.out.println("cal_charge ="+ cal_charge);
 	      				exit_process((int)resMsg.charAt(3)-48,today,cal_charge);
-	      				System.out.println("exit_process complete");
+	      				//System.out.println("exit_process complete");
 	      				String _user_id = get_user_id((int)resMsg.charAt(3)-48);
-	      				System.out.println("_user_id :"+_user_id);
-	      				System.out.println("Sending Message to Arduino : "+"5 "+_user_id+" "+cal_charge/0.125+" "+cal_charge+"\n");
-	      				out.write("5 "+_user_id+" "+cal_charge/0.125+" "+cal_charge+"\n");
+	      				//System.out.println("_user_id :"+_user_id);
+	      				//System.out.println("Sending Message to Arduino : "+"5 "+_user_id+" "+charge_time+" "+cal_charge+"\n");
+	      				out.write("5 "+_user_id+" "+charge_time+" "+cal_charge+"\n");
 	      				out.flush();
+	      				queue.add("2 Open end_gate");
 	      				//drop data;
 	      				break;
 	      			default:
@@ -326,7 +376,7 @@ class Ingate_server extends Thread{
       					break;
 	      			}
 	      		}
-	      		    queue.add(this.parking_state);
+	      		    queue.add("1"+this.parking_state);
 	        		out.close();
 	        		in.close();
 	        		clientSocket.close();

@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -84,6 +85,8 @@ public class CentralServer extends Thread {
 	        		System.exit(1);
 	        	}
 
+	    	
+
 				/*****************************************************************************
 	    	 	* If we get to this point, a client has connected. Now we need to
 	    	 	* instantiate a client socket. Once its instantiated, then we accept the
@@ -96,6 +99,7 @@ public class CentralServer extends Thread {
 	        	}
 	    		catch (Exception e)
 	        	{
+	    			System.out.println(e.getMessage());
 	        		System.err.println("Accept failed.");
 	        		System.exit(1);
 	        	}
@@ -113,6 +117,7 @@ public class CentralServer extends Thread {
 	      		Date date = calendar.getTime();
 	            String today = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date));
 	    		String result ="";
+	    		System.out.println("in.readline");
 	    		if((result=in.readLine())!=null){
 	    			String data[];
 	    			data = result.split(" ");
