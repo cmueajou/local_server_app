@@ -47,8 +47,10 @@ public class ParkingAttendantApp implements Runnable{
 	   protected String ID = "ad1";
 	   protected String Pin = "1";
 
-    String parking_status;
-    String broadcast;
+	
+    String parking_status="2000";
+    String parking_reserve_status;
+    String broadcast="";
    BlockingQueue queue;
  
    
@@ -91,10 +93,10 @@ public class ParkingAttendantApp implements Runnable{
       jframe.setVisible(true);
      
       ActionListener a1 = new ActionListener() {
+    	
     	 
          public void actionPerformed(ActionEvent e) {
-        	 ListenLocal l1 = new ListenLocal();
-        	  l1.start();
+        
             if(AccountText.getText().equals(ID)&& PINText.getText().equals(Pin)){
                jframe.remove(LoginPanel);
                PAUI UI = new PAUI(id,queue);
@@ -145,9 +147,9 @@ public class ParkingAttendantApp implements Runnable{
    
    public void popUpMeassage(String popUp){
 	      PAUI_p3_popup.setText(popUp);
-	   }
+   }
 	   
-	   public void chageGateState(int inORout, int openclose){
+   public void chageGateState(int inORout, int openclose){
 	      PAUI_p2_Info_gatestate_gate[inORout].setBackground(Color.RED);
 	   }
 	   
@@ -155,30 +157,5 @@ public class ParkingAttendantApp implements Runnable{
 	      PAUI_p2_info_carNum.setText("Total Car: " + Integer.toString(TotalCar));
 	   }
 
-   
-   public class ListenLocal extends Thread{
-	  public void run(){
-		  while(true){
-		  try {
-  	  		String Command_arbitor = (String) queue.take();
-  	  		System.out.println("Command_arbitor : "+ Command_arbitor);
-  	  		if(Command_arbitor.charAt(0)=='1'){
-  	  			parking_status = Command_arbitor.substring(1);
-  	  		System.out.println("Parking APP :"+ parking_status);
-  	  		}
-  	  		else if(Command_arbitor.charAt(0)=='2'){
-  	  			broadcast = Command_arbitor.substring(1);
-  	  		System.out.println("Parking Broadcast :"+ broadcast);
-  	  		}
-  	  		else{
-  	  		
-  	  		}
-  	  	} catch (InterruptedException e1) {
-  	  		// TODO Auto-generated catch block
-  	  		e1.printStackTrace();
-  	  	}
-		  }
-	   }
-   }
-  
-}
+}  
+ 

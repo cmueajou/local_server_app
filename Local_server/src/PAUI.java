@@ -146,31 +146,30 @@ public class PAUI extends ParkingAttendantApp{
             	 String query = "select * from sure_park.reservation where" +"`"+ "ASSIGNED_PARKING_SPOT"+"`"+"="+'1';
             	 String user_id="";
             	 String reservation_code="";
-            	 Date start_date;
-            	 Calendar start_time;
+            	 String start_date;
             	 Calendar current_time=Calendar.getInstance();
             	 Date current_date = current_time.getTime();
             	 double charge;
-            	 
+            	 //charge 부분 따오자
                  /*1,2,3,4 각 자동차 현재 세부사항 가져와서 띄워야한다
                   * 
                   * */
              	 try{
+             		System.out.println("asdajbkwqjbcjbkwjcbjsbkcbaskjc");
               		db.set_statement(db.get_connection().prepareStatement(query));
               		db.set_resultset(db.get_statement().executeQuery());
               		if(db.get_resultset().next()){
               			user_id = db.get_resultset().getString("USER_ID");
               			reservation_code = db.get_resultset().getString("RESERVATION_ID");
-              			start_date=db.get_resultset().getDate("PARKING_START_TIME");
-              			start_time=Calendar.getInstance();
-              			start_time.setTime(start_date);
-              			charge = ((current_time.get(Calendar.HOUR_OF_DAY)-start_time.get(Calendar.HOUR_OF_DAY))*60)+(current_time.get(Calendar.MINUTE)-start_time.get(Calendar.MINUTE))*0.125;
-              	     JOptionPane.showMessageDialog( null, String.format("car Info 1"+"\n"+
+              			start_date=db.get_resultset().getString("PARKING_START_TIME");
+              			
+              		//	charge = ((current_time.get(Calendar.HOUR_OF_DAY)-start_time.get(Calendar.HOUR_OF_DAY))*60)+(current_time.get(Calendar.MINUTE)-start_time.get(Calendar.MINUTE))*0.125;
+              	   /* JOptionPane.showMessageDialog( null, String.format("car Info 1"+"\n"+
                                                                          "ID : "+ user_id +"\n"+
                                                                          "Reservation code : "+ reservation_code+"\n"+
                                                                          "Start time : "+start_date.toString())+"\n"+
                                                                          "Occupy time : "+current_date.toString()+"\n"+
-                                                                         "charge : "+charge);
+                                                                         "charge : "+charge);*/
               		}
               		
               	 }
@@ -308,13 +307,31 @@ public class PAUI extends ParkingAttendantApp{
       PAUI_p1_authenticationButton.addActionListener(b1);
       
       
-      JLabel PAUI_p2_info_time = new JLabel("Time : 1:30");
-      JLabel PAUI_p2_info_carNum = new JLabel("Total Car: "+Integer.toString(currentCarNum));
+      Calendar calendar = Calendar.getInstance();
+      SimpleDateFormat df = new SimpleDateFormat("HH:mm");
+      System.out.println(df.format(calendar.getTime()));
+      
+      JLabel PAUI_p2_info_time = new JLabel("Time :"+df.format(calendar.getTime()));
+      
       JLabel PAUI_p2_info_gateState = new JLabel("GateState");
       
       PAUI_p2_info.add(PAUI_p2_info_time);
       PAUI_p2_info.add(PAUI_p2_info_carNum);
       PAUI_p2_info.add(PAUI_p2_info_gateState);
+      
+      for(int i= 0 ; i < 2 ; i++){
+         PAUI_p2_Info_gatestate_gate[i] = new JPanel();
+         PAUI_p2_Info_gatestate_gate[i].setSize(100,100);
+         PAUI_p2_Info_gatestate_gate[i].setBackground(Color.green);
+      }
+      JLabel PAUI_p2_Info_gatestate_gate_Entry = new JLabel("Entry");
+      JLabel PAUI_p2_Info_gatestate_gate_Exit = new JLabel("Exit  ");
+      
+      PAUI_p2_Info_gatestate_gate[0].add(PAUI_p2_Info_gatestate_gate_Entry);
+      PAUI_p2_Info_gatestate_gate[1].add(PAUI_p2_Info_gatestate_gate_Exit);
+      
+      PAUI_p2_info.add(PAUI_p2_Info_gatestate_gate[0]);
+      PAUI_p2_info.add(PAUI_p2_Info_gatestate_gate[1]);
       
       PAUI_p2.add(PAUI_p2_parkingLot);
       PAUI_p2.add(PAUI_p2_info);
@@ -323,7 +340,7 @@ public class PAUI extends ParkingAttendantApp{
       JPanel PAUI_p3 = new JPanel();
       //PAUI_p3.setLayout(new FlowLayout());
       
-      JLabel PAUI_p3_popup = new JLabel("popup");
+     
       PAUI_p3.add(PAUI_p3_popup);
       
       p.add(PAUI_p1,"North");

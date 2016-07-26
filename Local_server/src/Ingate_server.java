@@ -1,3 +1,4 @@
+
 /******************************************************************************************************************
 * File: Server.java
 * Course: 2013 LG Executive Education Program
@@ -38,354 +39,490 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.io.*;
 
-
-class Ingate_server extends Thread{
+class Ingate_server extends Thread {
 	String local_server = "192.168.1.138";
-	String central_server="192.168.1.5";
-	 private int id = -1;
-	 String parking_state="0000";
-	 BlockingQueue queue;
-	 int parking_lot_buff;
-	 String user_id;
-	
-	  
-	   
-	   public Ingate_server(int id, BlockingQueue _queue){
-	      this.id = id; 
-	      this.queue = _queue;
-	
-	   }
-	   
-	   public int auth_query(String _reservation_code){
-		   Database db = new Database(local_server,"root","1234");
-		   String query = "select * from sure_park.reservation where" +"`"+ "RESERVATION_ID"+"`"+"="+"'"+ _reservation_code+"'";
-		   try {
-			    db.set_statement(db.get_connection().prepareStatement(query));
-		        db.set_resultset(db.get_statement().executeQuery());
-		        if(db.get_resultset().next()){
-		        	return 1;
-		        }
-		        else
-		        	return 0;
-		   } 
-		   catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+	String central_server = "192.168.1.5";
+	private int id = -1;
+	String parking_state = "0000";
+	String parking_reserve_state="0000";
+	BlockingQueue queue;
+	int parking_lot_buff;
+	String user_id;
+	String reservation_code = "";
+
+	public Ingate_server(int id, BlockingQueue _queue) {
+		this.id = id;
+		this.queue = _queue;
+
+	}
+
+	public int auth_query(String _reservation_code) {
+		Database db = new Database(local_server, "root", "1234");
+		String query = "select * from sure_park.reservation where" + "`" + "RESERVATION_ID" + "`" + "=" + "'"
+				+ _reservation_code + "'";
+		System.out.println("auth_query : "+query);
+		try {
+			db.set_statement(db.get_connection().prepareStatement(query));
+			db.set_resultset(db.get_statement().executeQuery());
+			if (db.get_resultset().next()) {
+				if(db.get_resultset().getInt("RESERVE_STATE")==0)
+				return 1;
+				else
+					return 0;
+			} else
 				return 0;
-			}
-	   }
-	   public int update_parking_state(String _parking_state, String _trans_Msg){
-
-		   
-		   char []result = _parking_state.toCharArray();
-		   if(_trans_Msg.compareTo("1AUTH")==0){
-		   for(int i=0;i<3;i++){
-			   if(result[i]=='0'){
-				   return i;
-			   }
-			   
-		   }
-		  
-		   } 
-		   
-		   return -1;
-	   }
-	   public int get_charge_time(String _end_time, int parking_spot){
-		   Database db = new Database(local_server,"root","1234");
-		   String query = "Select"+"`"+"PARKING_START_TIME"+"`"+"from"+"`"+"sure_park"+"`"+"."+"`"+"reservation"+"`"+"where"+ "`"+"ASSIGNED_PARKING_SPOT"+"`"+"="+parking_spot;
-           try{
-			   
-			   System.out.println("query :" + query);
-			   
-		   		db.set_statement(db.get_connection().prepareStatement(query));
-		        db.set_resultset(db.get_statement().executeQuery());
-		        if(db.get_resultset().next()){
-		         Timestamp d_start = db.get_resultset().getTimestamp("PARKING_START_TIME");
-		        
-		        System.out.println("DB resultset setting complete");
-		        System.out.println("d_start setting");
-		        String starttime = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(d_start));
-		        System.out.println("starttime :"+starttime);
-		        String[] start_data = starttime.split(" ");
-		        System.out.println(start_data[0]);
-		        System.out.println(start_data[1]);
-		        String[] start_date = start_data[0].split("-");
-		        System.out.println(start_date[0]+" "+start_date[1]+" "+start_date[2]);
-		        String[] start_time = start_data[1].split(":");
-		        System.out.println(start_time[0]+" "+start_time[1]+" "+start_time[2]);
-		        String[] end_data = _end_time.split(" ");
-		        System.out.println("end_data :"+end_data[0]+" "+end_data[1]);
-		        String[] end_date = end_data[0].split("-");
-		        System.out.println(end_date[0]+" "+end_date[1]+" "+end_date[2]);
-		        String[] end_time = end_data[1].split(":");
-		        System.out.println(end_time[0]+" "+end_time[1]+" "+end_time[2]);
-		        int charge_time = (((Integer.parseInt(end_date[2])-Integer.parseInt(start_date[2]))*24*60))+(((Integer.parseInt(end_time[0]))-(Integer.parseInt(start_time[0])))*60)+(Integer.parseInt(end_time[1])-Integer.parseInt(start_time[1]));
-		        return charge_time;
-		        }
-		        return 0;
-		   	    }catch(Exception ex){
-		   		 System.out.println(ex.getMessage());
-		   		 return 0;
-		   	  }   
-	   }
-	   public float calculate_charge(String _end_time, int parking_spot){
-		   System.out.println("_end_time :"+_end_time);
-		   Database db = new Database(local_server,"root","1234");
-		   System.out.println("calculate_charge_DB_Connection complete");
-		   String query = "Select"+"`"+"PARKING_START_TIME"+"`"+"from"+"`"+"sure_park"+"`"+"."+"`"+"reservation"+"`"+"where"+ "`"+"ASSIGNED_PARKING_SPOT"+"`"+"="+parking_spot;
-		   try{
-			   
-			   System.out.println("query :" + query);
-			   
-		   		db.set_statement(db.get_connection().prepareStatement(query));
-		        db.set_resultset(db.get_statement().executeQuery());
-		        if(db.get_resultset().next()){
-		         Timestamp d_start = db.get_resultset().getTimestamp("PARKING_START_TIME");
-		        
-		        System.out.println("DB resultset setting complete");
-		        System.out.println("d_start setting");
-		        String starttime = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(d_start));
-		        System.out.println("starttime :"+starttime);
-		        String[] start_data = starttime.split(" ");
-		        System.out.println(start_data[0]);
-		        System.out.println(start_data[1]);
-		        String[] start_date = start_data[0].split("-");
-		        System.out.println(start_date[0]+" "+start_date[1]+" "+start_date[2]);
-		        String[] start_time = start_data[1].split(":");
-		        System.out.println(start_time[0]+" "+start_time[1]+" "+start_time[2]);
-		        String[] end_data = _end_time.split(" ");
-		        System.out.println("end_data :"+end_data[0]+" "+end_data[1]);
-		        String[] end_date = end_data[0].split("-");
-		        System.out.println(end_date[0]+" "+end_date[1]+" "+end_date[2]);
-		        String[] end_time = end_data[1].split(":");
-		        System.out.println(end_time[0]+" "+end_time[1]+" "+end_time[2]);
-		        int charge_time = (((Integer.parseInt(end_date[2])-Integer.parseInt(start_date[2]))*24*60))+(((Integer.parseInt(end_time[0]))-(Integer.parseInt(start_time[0])))*60)+(Integer.parseInt(end_time[1])-Integer.parseInt(start_time[1]));
-		        System.out.println("charge_time : "+charge_time);
-		        return (float) (charge_time*0.125);
-		        }
-		        return 0;
-		   	    }catch(Exception ex){
-		   		 System.out.println(ex.getMessage());
-		   		 return 0;
-		   	  }
-		   		
-	   }
-	   public int exit_process(int parking_slot, String time,float charge ){
-	   		  Database db = new Database(local_server,"root","1234");
-	   		  String query = "Update sure_park.reservation set"+"`"+"PARKING_END_TIME"+"`"+"="+"'"+time+"'"+","+"`"+"CHARGED_FEE"+"`"+"="+"'"+charge+"'"+","+"`"+"RESERVE_STATE"+"`"+"="+"'"+"2"+"'"+" where "+"`"+"ASSIGNED_PARKING_SPOT"+"`"+"=1";
-	   		  System.out.println(query);
-	   		try{
-	   		db.set_statement(db.get_connection().prepareStatement(query));
-	      db.get_statement().executeUpdate();
-	        return 1;
-	   	  }catch(SQLException ex){
-	   		 System.out.println(ex.getMessage());
-	   		 return -1;
-	   		  
-	   		  
-	   	  }
-	   	  }
-
-	   public String get_user_id(String reservation_code){
-		   Database db = new Database(local_server,"root","1234");
-		   String query = "SELECT"+" USER_ID"+" from sure_park.reservation"+" where"+"`"+ "RESERVATION_ID"+"`"+"="+"'"+ reservation_code+"'";
-		   System.out.println(query);
-		   try {
-			    db.set_statement(db.get_connection().prepareStatement(query));
-		        db.set_resultset(db.get_statement().executeQuery());
-		        if((db.get_resultset().next())){
-		        	user_id = db.get_resultset().getString("USER_ID");
-		        	return user_id;
-		        }
-		       
-		        
-		   } 
-		   catch (SQLException e) {
-				System.out.println("get user_id error");
-				e.printStackTrace();
-				
-			}
-		   return "";
-	   }
-	   public String get_user_id(int parking_spot){
-		   char ch = (char)(parking_spot+48);
-		   Database db = new Database(local_server,"root","1234");
-		   String query = "SELECT * FROM sure_park.reservation";
-		   
-
-		   try {
-			    db.set_statement(db.get_connection().prepareStatement(query));
-		        db.set_resultset(db.get_statement().executeQuery());
-		        if((db.get_resultset().next())){
-		        	user_id = db.get_resultset().getString("USER_ID");
-		        	return user_id;
-		        }
-		       
-		        
-		   } 
-		   catch (SQLException e) {
-				System.out.println("get user_id error");
-				e.printStackTrace();
-				
-			}
-		   return "";
-	   }
-	  public void ReportCentral(int parking_spot){
-		  Database local_db = new Database(local_server,"root","1234");
-		  Database central_db = new Database(central_server,"root","g0t9d2e2");
-		  
-		  String local_query = "SELECT * from sure_park.reservation where ="+parking_spot;
-		  
-		  
-	  }
-	   public void run() { 
-		   int msgNum = 0;												// Message to display from serverMsg[]
-	       String inputLine;											// Data from client
-		   String resMsg="";
-		   String reservation_code="";
-		   ServerSocket serverSocket = null;							// Server socket object
-			  Socket clientSocket = null;
-			  int portNum = 1005;
-				
-			   
-		   
-		   
-			
-			while(true){
-				/*****************************************************************************
-	    	 	* First we instantiate the server socket. The ServerSocket class also does
-	    	 	* the listen()on the specified port.
-			 	*****************************************************************************/
-			  	try
-				{
-		    		serverSocket = new ServerSocket(portNum);
-		    		System.out.println ( "\n\nWaiting for connection on port " + portNum + "." );
-		    	}
-				catch (IOException e)
-		    	{
-					
-		    		System.err.println( "\n\nCould not instantiate socket on port: " + portNum + " " + e);
-		    		System.out.println(e.getMessage());
-		    		System.exit(1);
-		    	}
-			  	
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return 0;
+		}
+	}
+	public void update_reserve_state(String _reservation_code, int reserve_state){
+		Database db = new Database(local_server,"root","1234");
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+		Calendar cal = Calendar.getInstance();
+		String today = null;
+		today= formatter.format(cal.getTime());
 		
+		String query="";
+		if(reserve_state ==1){
+		 query ="Update sure_park.reservation set " + "`" + "RESERVE_STATE" + "`" + "=" + "'" + reserve_state + "'"+","
+				+"`"+"PARKING_START_TIME"+"`"+"="+"'"+today+"'"+" where " + "`" + "RESERVATION_ID" + "`" + "=" + "'"+_reservation_code+"'";
+		System.out.println(query);
+		}
+		else if(reserve_state ==2){
+			query ="Update sure_park.reservation set " + "`" + "RESERVE_STATE" + "`" + "=" + "'" + reserve_state + "'"+ "where " + "`" + "RESERVATION_ID" + "`" + "=" + "'"+_reservation_code+"'";
+			System.out.println(query);
 
-				/******************************1***********************************************
-	    	 	* If we get to this point, a client has connected. Now we need to
-	    	 	* instantiate a client socket. Once its instantiated, then we accept the
-	    	 	* connection.
-			 	*****************************************************************************/
+		}
+		else if(reserve_state ==3){
+			query ="Update sure_park.reservation set " + "`" + "RESERVE_STATE" + "`" + "=" + "'" + reserve_state + "'"+" where " + "`" + "RESERVATION_ID" + "`" + "=" + "'"+_reservation_code+"'";
+			System.out.println(query);
 
-		    	try
-	    		{
-		    
-	        		clientSocket = serverSocket.accept();
-	        	}
-	    		catch (Exception e)
-	        	{
-	        		System.err.println("Accept failed.");
-	        		System.exit(1);
-	        	}
+		}
+		else if(reserve_state ==5){
+			query ="Update sure_park.reservation set " + "`"+"PARKING_END_TIME"+"`"+"="+"'"+today+"'"+" where " + "`" + "RESERVATION_ID" + "`" + "=" + "'"+_reservation_code+"'";
+			System.out.println(query);
 
-				/*****************************************************************************
-	    	 	* At this point we are all connected and we need to create the streams so
-	    	 	* we can read and write.
-			 	*****************************************************************************/
-		    	System.out.println ("Connection successful");
-		    	
-	    		try{
-	    		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
-	      		BufferedReader in = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
-	    		System.out.println("Initiate Buffer complete");
-	      		if((resMsg = in.readLine())!=null){
-	      			System.out.println("resMsg readline complete");
-	      			switch(resMsg.charAt(0)){
-	      			case '1': // In front of enterance.
-	      				System.out.println(resMsg);
-	      				reservation_code =resMsg.substring(2,10);
-	      				//System.out.println(reservation_code);
-	      				this.parking_state = resMsg.substring(11,15);
-	      				//System.out.println("Parking state :"+parking_state);
-	      				int result = auth_query(reservation_code);
-	      	
-	      				if(result==1){
-	      					queue.add("1"+ " "+parking_state);
-	      					String _1user_id = get_user_id(reservation_code);
-	      					queue.add("2"+" "+"entering"+" "+ _1user_id);//User_id Entrance msg
-	      					int update_parking_msg = update_parking_state(this.parking_state,"1AUTH");
-	      					System.out.println("sending msg : "+"1Auth"+update_parking_msg);
-	      					out.write("1Auth"+update_parking_msg+" "+_1user_id);
-	      					out.flush();
-	      				}
-	      				else{
-	      					out.write("1Deny\n");
-	      					out.flush();
-	      				}
-	      				break;	      				
-	      			case '2':
-	      				char[] buff_arry;
-	      				System.out.println("case2 :"+resMsg);
-	      				
-	      				out.write("2Occupied\n");
-	      				out.flush();
-	      				buff_arry = this.parking_state.toCharArray();
-	      				buff_arry[((int)resMsg.charAt(5)-48)-1] = '1';
-	      				queue.add("2"+"occupied parking spot #"+(resMsg.charAt(5)-48));
-	      				this.parking_state = new String(buff_arry,0,buff_arry.length);
-	      				queue.add("1"+" "+this.parking_state);
-	      				
-	      				break;
-	 
-	      			case '3':
-	      				System.out.println("case3 :"+resMsg);
-	      				out.write("3Release\n");
-	      				out.flush();
-	      				buff_arry = this.parking_state.toCharArray();
-	      				buff_arry[((int)resMsg.charAt(5)-48)-1] = '0';
-	      				queue.add("2"+" "+"Released parking spot #"+(resMsg.charAt(5)-48));
-	      				this.parking_state = new String(buff_arry,0,buff_arry.length);
-	      				queue.add("1"+" "+this.parking_state);
-	      				break;
-	      			case '4':
-	      				queue.add("2 Close_door and Parking contract complete");
-	      			case '5':
-	      				resMsg = resMsg.substring(3);
-	      				//System.out.println("case5 :"+resMsg);
-	      				String[] data = resMsg.split(" ");
-	      				Calendar cal =  Calendar.getInstance();
-	      				Date date = cal.getTime();
-	      				String today = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date));
-	      				//System.out.println("today:"+today);
-	      				//System.out.println("parking_lot : "+((int)resMsg.charAt(3)-48));
-	      				float cal_charge = calculate_charge(today,(int)resMsg.charAt(3)-48);
-	      				int charge_time = get_charge_time(today,(int)resMsg.charAt(3)-48);
-	      				//System.out.println("cal_charge ="+ cal_charge);
-	      				exit_process((int)resMsg.charAt(3)-48,today,cal_charge);
-	      				//System.out.println("exit_process complete");
-	      				String _user_id = get_user_id((int)resMsg.charAt(3)-48);
-	      				//System.out.println("_user_id :"+_user_id);
-	      				//System.out.println("Sending Message to Arduino : "+"5 "+_user_id+" "+charge_time+" "+cal_charge+"\n");
-	      				out.write("5 "+_user_id+" "+charge_time+" "+cal_charge+"\n");
-	      				out.flush();
-	      				queue.add("2 Open end_gate");
-	      				//drop data;
-	      				break;
-	      			default:
-	      				System.out.println(resMsg);
-      					break;
-	      			}
-	      		}
-	      		    queue.add("1"+this.parking_state);
-	        		out.close();
-	        		in.close();
-	        		clientSocket.close();
-	        		serverSocket.close();
-	    		} catch(Exception e){
-	    			System.out.println(e.getMessage());
-	    		}
-	           }
-	   }
-}
+		}
+		else{
+			
+		}
+		try {
+			db.set_statement(db.get_connection().prepareStatement(query));
+			db.get_statement().executeUpdate();
+		} catch (SQLException ex) {
+			System.out.println(ex.getMessage());
+			ex.printStackTrace();
+		}
+		
+	}
+
+	public int update_parking_state(String _parking_state, String _trans_Msg) {
+
+		char[] result = _parking_state.toCharArray();
+		if (_trans_Msg.compareTo("1AUTH") == 0) {
+			for (int i = 0; i < 3; i++) {
+				if (result[i] == '0') {
+					return i;
+				}
+
+			}
+
+		}
+		else if(_trans_Msg.compareTo("Central")==0){
+			result=_parking_state.toCharArray();
+			for(int i=0; i< 3; i++)
+				if(result[i]=='0'){
+					result[i] = '2';
+					_parking_state = new String(result,0,result.length);
+				}
+			return 0;
+		}
+		else
+			return 0;
+
+		return -1;
+	}
+
+	public int get_charge_time(String _end_time, int parking_spot) {
+		Database db = new Database(local_server, "root", "1234");
+		String query = "Select" + "`" + "PARKING_START_TIME" + "`" + "from" + "`" + "sure_park" + "`" + "." + "`"
+				+ "reservation" + "`" + "where" + "`" + "ASSIGNED_PARKING_SPOT" + "`" + "=" + parking_spot;
+		try {
+
+			System.out.println("query :" + query);
+
+			db.set_statement(db.get_connection().prepareStatement(query));
+			db.set_resultset(db.get_statement().executeQuery());
+			if (db.get_resultset().next()) {
+				String starttime =  db.get_resultset().getString("PARKING_START_TIME");
+				System.out.println("starttime :" + starttime);
+				String[] start_data = starttime.split(" ");
+				System.out.println(start_data[0]);
+				System.out.println(start_data[1]);
+				String[] start_date = start_data[0].split("-");
+				System.out.println(start_date[0] + " " + start_date[1] + " " + start_date[2]);
+				String[] start_time = start_data[1].split(":");
+				System.out.println(start_time[0] + " " + start_time[1] + " " + start_time[2]);
+				String[] end_data = _end_time.split(" ");
+				System.out.println("end_data :" + end_data[0] + " " + end_data[1]);
+				String[] end_date = end_data[0].split("-");
+				System.out.println(end_date[0] + " " + end_date[1] + " " + end_date[2]);
+				String[] end_time = end_data[1].split(":");
+				System.out.println(end_time[0] + " " + end_time[1] + " " + end_time[2]);
+				int charge_time = (((Integer.parseInt(end_date[2]) - Integer.parseInt(start_date[2])) * 24 * 60))
+						+ (((Integer.parseInt(end_time[0])) - (Integer.parseInt(start_time[0]))) * 60)
+						+ (Integer.parseInt(end_time[1]) - Integer.parseInt(start_time[1]));
+				return charge_time;
+			}
+			return 0;
+		} catch (Exception ex) {
+			System.out.println(ex.getMessage());
+			return 0;
+		}
+	}
+
+	public float calculate_charge(String _end_time, int parking_spot) {
+		System.out.println("_end_time :" + _end_time);
+		Database db = new Database(local_server, "root", "1234");
+		System.out.println("calculate_charge_DB_Connection complete");
+		String query = "Select" + "`" + "PARKING_START_TIME" + "`" + "from" + "`" + "sure_park" + "`" + "." + "`"
+				+ "reservation" + "`" + "where" + "`" + "ASSIGNED_PARKING_SPOT" + "`" + "=" + parking_spot;
+		try {
+
+			System.out.println("query :" + query);
+
+			db.set_statement(db.get_connection().prepareStatement(query));
+			db.set_resultset(db.get_statement().executeQuery());
+			if (db.get_resultset().next()) {
+				String starttime = db.get_resultset().getString("PARKING_START_TIME");
+				System.out.println("starttime :" + starttime);
+				String[] start_data = starttime.split(" ");
+				String[] start_date = start_data[0].split("-");
+				System.out.println(start_date[0] + " " + start_date[1] + " " + start_date[2]);
+				String[] start_time = start_data[1].split(":");
+				System.out.println(start_time[0] + " " + start_time[1] + " " + start_time[2]);
+				String[] end_data = _end_time.split(" ");
+				System.out.println("end_data :" + end_data[0] + " " + end_data[1]);
+				String[] end_date = end_data[0].split("-");
+				System.out.println(end_date[0] + " " + end_date[1] + " " + end_date[2]);
+				String[] end_time = end_data[1].split(":");
+				System.out.println(end_time[0] + " " + end_time[1] + " " + end_time[2]);
+				int charge_time = (((Integer.parseInt(end_date[2]) - Integer.parseInt(start_date[2])) * 24 * 60))
+						+ (((Integer.parseInt(end_time[0])) - (Integer.parseInt(start_time[0]))) * 60)
+						+ (Integer.parseInt(end_time[1]) - Integer.parseInt(start_time[1]));
+				System.out.println("charge_time : " + charge_time);
+				return (float) (charge_time * 0.125);
+			}
+			return 0;
+		} catch (Exception ex) {
+			System.out.println(ex.getMessage());
+			return 0;
+		}
+
+	}
+
+	public int exit_process(int parking_slot, String time, float charge) {
+		Database db = new Database(local_server, "root", "1234");
+		String query = "Update sure_park.reservation set" + "`" + "PARKING_END_TIME" + "`" + "=" + "'" + time + "'"
+				+ "," + "`" + "CHARGED_FEE" + "`" + "=" + "'" + charge + "'" + "," + "`" + "RESERVE_STATE" + "`" + "="
+				+ "'" + "2" + "'" + " where " + "`" + "ASSIGNED_PARKING_SPOT" + "`" + "=" + parking_slot;
+		System.out.println(query);
+		try {
+			db.set_statement(db.get_connection().prepareStatement(query));
+			db.get_statement().executeUpdate();
+			return 1;
+		} catch (SQLException ex) {
+			System.out.println(ex.getMessage());
+			return -1;
+		}
+	}
+	public void Report_central(String _usr){
+		Database local_db = new Database(local_server,"root","1234");
+		String query = "Select * from sure_park.reservation";
+		
+		
+		try {
+			local_db.set_statement(local_db.get_connection().prepareStatement(query));
+			local_db.set_resultset(local_db.get_statement().executeQuery());
+			if ((local_db.get_resultset().next())) {
+				String id = local_db.get_resultset().getString("USER_ID");
+				String reservation_id = local_db.get_resultset().getString("RESERVATION_ID");
+				String reservation_start_time = local_db.get_resultset().getString("RESERVATION_START_TIME");
+				String parking_start_time = local_db.get_resultset().getString("PARKING_START_TIME");
+				String parking_end_time = local_db.get_resultset().getString("PARKING_END_TIME");
+				String reservation_time = local_db.get_resultset().getString("RESERVATION_TIME");
+				float charge_fee = local_db.get_resultset().getFloat("CHARGED_FEE");
+				int assigned_parking_spot = local_db.get_resultset().getInt("ASSIGNED_PARKING_SPOT");
+				int reserve_state = local_db.get_resultset().getInt("RESERVE_STATE");
+				
+				Database central_db = new Database(central_server,"root","g0t9d2e2");
+				String central_query = "Update sure park.reservation set "
+						+" PARKING_START_TIME= "+"'"+parking_start_time+"'"+","
+						+" PARKING_END_TIME= "+"'"+parking_end_time+"'"+","
+						+" RESERVATION_TIME = "+"'"+reservation_time+"'"+","
+						+" CHARGE_FEE ="+"'"+charge_fee+"'"+","
+						+" ASSIGNED_PARKING_SPOT ="+"'"+assigned_parking_spot+"'"+","
+						+" RESERVE_STATE ="+"'"+reserve_state+"'"
+						+" where USER_ID ="+"'"+id+"'";
+				
+				central_db.set_statement(central_db.get_connection().prepareStatement(central_query));
+				central_db.get_statement().executeUpdate();
+			}
+
+		} catch (SQLException e) {
+			System.out.println("Report to central error");
+			
+			e.printStackTrace();
+
+		}
+		
+		
+	}
+
+	public String get_user_id(String reservation_code) {
+		Database db = new Database(local_server, "root", "1234");
+		String query = "SELECT" + " USER_ID" + " from sure_park.reservation" + " where" + "`" + "RESERVATION_ID" + "`"
+				+ "=" + "'" + reservation_code + "'";
+		try {
+			db.set_statement(db.get_connection().prepareStatement(query));
+			db.set_resultset(db.get_statement().executeQuery());
+			if ((db.get_resultset().next())) {
+				user_id = db.get_resultset().getString("USER_ID");
+				return user_id;
+			}
+
+		} catch (SQLException e) {
+			System.out.println("get user_id error");
+			
+			e.printStackTrace();
+
+		}
+		return "";
+	}
+
+	public String get_user_id(int parking_spot) {
+		char ch = (char) (parking_spot + 48);
+		Database db = new Database(local_server, "root", "1234");
+		String query = "SELECT * FROM sure_park.reservation";
+
+		try {
+			db.set_statement(db.get_connection().prepareStatement(query));
+			db.set_resultset(db.get_statement().executeQuery());
+			if ((db.get_resultset().next())) {
+				user_id = db.get_resultset().getString("USER_ID");
+				return user_id;
+			}
+
+		} catch (SQLException e) {
+			System.out.println("get user_id error");
+			
+			e.printStackTrace();
+
+		}
+		return "";
+	}
+	public void Delete_reservation(String _user_id) {
+		
+		Database db = new Database(local_server, "root", "1234");
+		String query = "DELETE FROM sure_park.reservation where USER_ID ="+"'"+_user_id+"'";
+		try {
+			db.set_statement(db.get_connection().prepareStatement(query));
+			db.get_statement().executeUpdate();
+		} catch (SQLException e) {
+			System.out.println("Delete_reservation_error");
+			System.out.println(query);
+			e.printStackTrace();
+		}
+		
+		
+	}
+
+	public void run() {
+		int msgNum = 0; // Message to display from serverMsg[]
+		String inputLine; // Data from client
+		String resMsg = "";
+		
+		ServerSocket serverSocket = null; // Server socket object
+		Socket clientSocket = null;
+		int portNum = 1005;
+
+		while (true) {
+			/*****************************************************************************
+			 * First we instantiate the server socket. The ServerSocket class
+			 * also does the listen()on the specified port.
+			 *****************************************************************************/
+			try {
+				serverSocket = new ServerSocket(portNum);
+				System.out.println("\n\nWaiting for connection on port " + portNum + ".");
+			} catch (IOException e) {
+
+				System.err.println("\n\nCould not instantiate socket on port: " + portNum + " " + e);
+				System.out.println(e.getMessage());
+				System.exit(1);
+			}
+
+			/******************************
+			 * 1*********************************************** If we get to
+			 * this point, a client has connected. Now we need to instantiate a
+			 * client socket. Once its instantiated, then we accept the
+			 * connection.
+			 *****************************************************************************/
+
+			try {
+
+				clientSocket = serverSocket.accept();
+			} catch (Exception e) {
+				System.err.println("Accept failed.");
+				System.exit(1);
+			}
+
+			/*****************************************************************************
+			 * At this point we are all connected and we need to create the
+			 * streams so we can read and write.
+			 *****************************************************************************/
+			System.out.println("Connection successful");
+
+			try {
+				BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+				System.out.println("Initiate Buffer complete");
+				if ((resMsg = in.readLine()) != null) {
+					System.out.println("resMsg readline complete");
+					switch (resMsg.charAt(0)) {
+					case '1': // In front of enterance.
+						System.out.println("case 1 :"+resMsg);
+						reservation_code = resMsg.substring(2, 10);
+						user_id = get_user_id(reservation_code); 
+						// System.out.println(reservation_code);
+						this.parking_state = resMsg.substring(11, 15);
+						// System.out.println("Parking state :"+parking_state);
+						int result = auth_query(reservation_code);
+
+						if (result == 1) {
+							update_reserve_state(reservation_code,1);
+							int update_parking_msg = update_parking_state(this.parking_state, "1AUTH");
+							
+							queue.add("1" + " " + parking_state);
+							Thread.sleep(200);
+							
+							queue.add("2" + " " + "entering" + " " + user_id);
+							Thread.sleep(200);
+							System.out.println("sending msg : " + "1Auth" + update_parking_msg);
+							out.write("1Auth" + update_parking_msg + " " + user_id);
+							out.flush();
+						} else {
+							System.out.println("wrong access");
+							out.write("1Deny\n");
+							out.flush();
+						}
+						break;
+					case '2':// Occupy one parking slot
+						char[] buff_arry;
+						System.out.println("case2 :" + resMsg);
+						update_reserve_state(reservation_code,2);
+						int parking_spot =(int) resMsg.charAt(5) - 48;
+
+						out.write("2Occupied\n");
+						out.flush();
+						buff_arry = this.parking_state.toCharArray();
+						buff_arry[parking_spot-1] = '1';
+						this.parking_state = new String(buff_arry,0,buff_arry.length);
+						buff_arry = this.parking_reserve_state.toCharArray();
+						buff_arry[parking_spot-1] = '1';
+						this.parking_reserve_state = new String(buff_arry,0,buff_arry.length);
+						
+						queue.add("3"+" "+this.parking_reserve_state);
+						Thread.sleep(200);
+						
+						queue.add("2" + "occupied parking spot #" + parking_spot);
+						Thread.sleep(200);
+						
+						queue.add("1" + " " + this.parking_state);
+						Thread.sleep(200);
+
+						break;
+
+					case '3': //Release one parking slot
+						System.out.println("case3 :" + resMsg);
+						update_reserve_state(reservation_code,3);
+						out.write("3Release\n");
+						out.flush();
+						
+						buff_arry = this.parking_state.toCharArray();
+						parking_spot =(int) resMsg.charAt(5) - 48;
+						buff_arry[parking_spot - 1] = '0';
+						this.parking_state = new String(buff_arry, 0, buff_arry.length);
+						buff_arry = this.parking_reserve_state.toCharArray();
+						buff_arry[parking_spot - 1] = '0';
+						this.parking_reserve_state = new String(buff_arry, 0, buff_arry.length);
+						queue.add("3"+ " "+ this.parking_reserve_state);
+						Thread.sleep(200);
+						
+						queue.add("1" + " " + this.parking_state);
+						Thread.sleep(200);
+						
+						
+						queue.add("2" + " " + "Released parking spot #" + parking_spot);
+						Thread.sleep(200);
+						
+						
+						
+						break;
+					case '4': // close outgate door
+						queue.add("2 Close_door and Parking contract complete");
+						Thread.sleep(200);
+						break;
+					case '5': // depart in front of outgate 
+						System.out.println("case5 :"+resMsg);
+						update_reserve_state(reservation_code,5);//End 시간 업데이트
+						String[] msg_data = resMsg.split(" ");
+						parking_spot = (int) msg_data[1].charAt(4) - 48;
+						
+						Calendar cal = Calendar.getInstance();
+						Date date = cal.getTime();
+						String today = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date));
+						// System.out.println("today:"+today);
+						// System.out.println("parking_lot :
+						// "+((int)resMsg.charAt(3)-48));
+						float cal_charge = calculate_charge(today, parking_spot);
+						int charge_time = get_charge_time(today, parking_spot);
+						String release_user_id = get_user_id(parking_spot);
+						out.write("5 " + release_user_id + " " + charge_time + " " + cal_charge + "\n");
+						out.flush();
+						System.out.println("Sending Message to Arduino : " + "5 " + release_user_id + " " + charge_time + " "
+								+ cal_charge + "\n");
+						queue.add("2 Open end_gate");
+						exit_process(parking_spot, today, cal_charge);// 새로운
+																		// 내용으로
+																		// 업데이트
+																		// 시킴
+						Report_central(release_user_id);
+						//Delete_reservation(release_user_id);
+						// 관련내용 지움
+
+						break;
+					case 6:
+						System.out.println(resMsg);
+						break;
+					default:
+						System.out.println(resMsg);
+						break;
+					}
+				}
+				queue.add("1 " + this.parking_reserve_state);
+				Thread.sleep(200);
+				out.close();
+				in.close();
+				clientSocket.close();
+				serverSocket.close();
+				Thread.sleep(1000);
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+			}
+		}
+	}
+
 	
- 
+}
