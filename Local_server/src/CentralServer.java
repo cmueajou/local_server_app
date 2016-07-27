@@ -11,14 +11,17 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.concurrent.BlockingQueue;
 
 public class CentralServer extends Thread {
 	 private int id = -1;
 	   int portNum;
-	 
-	   
-	   public CentralServer(int id){
+	  BlockingQueue queue;
+	  String resMsg="";
+	  BufferedWriter out;
+	   public CentralServer(int id, BlockingQueue _queue){
 	      this.id = id;
+	      this.queue = _queue;
 	      
 	     
 	   }
@@ -29,32 +32,53 @@ public class CentralServer extends Thread {
 		   
 		   return r1.generate_Code(code);
 	   }
-	   public void RequestReservation(String user_id, String reserve_time){
+	   public void transfer_to_central(String msg, BufferedWriter _out){
+		   try {
+			_out.write(msg);
+			_out.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		   
+		   
+	   }
+	   public void RequestReservation(String user_id, String reserve_time,BufferedWriter out){
 		   Database db_local = new Database("192.168.1.138","root","1234");
-		   Database db_central = new Database("192.168.1.5","root","g0t9d2e2");
 		   String reservation_code = get_reservation_code();
 		   System.out.println(reservation_code);
 
-		   String query_local = "INSERT INTO sure_park.reservation"
-		   		+ "(USER_ID"+","+"RESERVATION_ID"+","+"RESERVATION_START_TIME"+","+"PARKING_START_TIME"+","+"PARKING_END_TIME"+","+"RESERVATION_TIME"+","+"CHARGED_FEE"+","+"ASSIGNED_PARKING_SPOT"+","+"RESERVE_STATE"+")"
-				   +"VALUES("+
-		   		"'"+user_id+"'"+","+"'"+reservation_code+"'"+","+"'"+reserve_time+"'"+","+"'"+"'"+","+"'"+"'"+","+"'"+"'"+","+"'"+0.0+"'"+","+"'"+0+"'"+","+"'"+0+"'"+")";
+		   String query_local =  "INSERT INTO sure_park.reservation"
+			   		+ "(USER_ID"+","+"RESERVATION_ID"+","+"RESERVATION_START_TIME"+","+"PARKING_START_TIME"+","+"PARKING_END_TIME"+","+"RESERVATION_TIME"+","+"CHARGED_FEE"+","+"ASSIGNED_PARKING_SPOT"+","+"RESERVE_STATE"+")"
+					   +"VALUES("+
+			   		"'"+user_id+"'"+","+"'"+reservation_code+"'"+","+"'"+reserve_time+"'"+","+"'"+"'"+","+"'"+"'"+","+"'"+"'"+","+"'"+0.0+"'"+","+"'"+0+"'"+","+"'"+0+"'"+")";
 		   System.out.println(query_local);
-		   String query_central ="Update"+"`"+"surepark"+"`"+"."+"`"+"reservation"+"`"+"set"+"`"+"RESERVATION_ID"+"`"+"="+"'"+reservation_code+"'"+"where USER_ID ="+"'"+user_id+"'";
+		   
 		   try {
 			   db_local.set_statement(db_local.get_connection().prepareStatement(query_local));
 				db_local.get_statement().executeUpdate();
 		        System.out.println("local RequestReservation Complete ");
-		        db_central.set_statement(db_central.get_connection().prepareStatement(query_central));
-				db_central.get_statement().executeUpdate();
-		        System.out.println("central RequestReservation Complete");
+		        out.write("Accept "+reservation_code);
+		        out.flush();
+		       System.out.println("central RequestReservation Complete");
 		        
 		   } 
 		   catch (SQLException e) {
-				System.out.println("get user_id error");
+				System.out.println("request_reservation_error");
 				e.printStackTrace();
 				
 			}
+		   catch(IOException e){
+			   System.out.println("transfer to central message error");
+			   e.printStackTrace();
+		   }
+		   queue.add("4 reserve_request");
+		   try {
+			Thread.sleep(200);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		  
 		   
 	   }
@@ -66,15 +90,15 @@ public class CentralServer extends Thread {
 		   int portNum = 1004;
 		   int msgNum = 0;												// Message to display from serverMsg[]
 	       String inputLine;											// Data from client
-		   String resMsg="";
+		   
 		   String reservation_code="";
 			
-			while(true){
+		while(true){
 				/*****************************************************************************
 	    	 	* First we instantiate the server socket. The ServerSocket class also does
 	    	 	* the listen()on the specified port.
 			 	*****************************************************************************/
-	    		try
+	    	try
 	    		{
 	        		serverSocket = new ServerSocket(portNum);
 	        		System.out.println ( "\n\nWaiting for connection on port " + portNum + "." );
@@ -108,30 +132,29 @@ public class CentralServer extends Thread {
 	    	 	* At this point we are all connected and we need to create the streams so
 	    	 	* we can read and write.
 			 	*****************************************************************************/
-		    	System.out.println ("Connection successful");
+    	    	System.out.println ("Connection successful");
+    	    	
+    	    
 		    	
 	    		try{
-	    	  	BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+	    	  	out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 	      		BufferedReader in = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
 	    		String result ="";
 	    		
-	    		System.out.println("in.readline");
+	    	
 	    		if((result=in.readLine())!=null){
 	    			String data[];
 	    			data = result.split(" ");
 	    			String id = data[0];
-	    			//SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+	    			
 		    		String reserve_data = data[1].concat(" "+data[2]);
-	    			//String reserve_data ="2016-04-14 08:00:34";
-		    		//Timestamp reserve_time = Timestamp.valueOf(reserve_data);
-	    			RequestReservation(id,reserve_data);
+	    			
+	    			RequestReservation(id,reserve_data,out);
 	    			System.out.println("data[0] : "+data[0]+"data[1] : "+data[1]+"data[2] :"+data[2]);
 	    			System.out.println("result : "+result);
+	    			
 	    		}
-	    		out.write("Hello Central? C88");
-	    		System.out.println("data transfer complete");
-	    		out.flush();
-	        		
+	    		
 	        		out.close();
 	        		in.close();
 	        		clientSocket.close();

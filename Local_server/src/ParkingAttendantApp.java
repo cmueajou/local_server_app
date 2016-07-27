@@ -48,8 +48,8 @@ public class ParkingAttendantApp implements Runnable{
 	   protected String Pin = "1";
 
 	
-    String parking_status="2000";
-    String parking_reserve_status;
+    String parking_status="0000";
+    String parking_reserve_status="0000";
     String broadcast="";
    BlockingQueue queue;
  

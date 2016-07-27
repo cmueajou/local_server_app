@@ -12,10 +12,10 @@ public class DataController {
 			   
 			   
 			   Ingate_server s1 = new Ingate_server(1, queue);
-			   CentralServer s2 = new CentralServer(2);
+			   CentralServer s2 = new CentralServer(2, queue);
 			   
 			   ParkingAttendantApp app = new ParkingAttendantApp(3,queue);
-			   ParkingEvent e1 = new ParkingEvent(app,queue);
+			   ParkingEvent e1 = new ParkingEvent(app,queue, s1, s2);
 			   s1.start();
 			   s2.start();
 			   app.run();
