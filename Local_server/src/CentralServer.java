@@ -43,8 +43,28 @@ public class CentralServer extends Thread {
 		   
 		   
 	   }
+	   public int number_of_reservation(){
+		   Database db_local = new Database("localhost","root","1234");
+		   String query = "SELECT * from sure_park.reservation";
+		   int result=0;
+		   try {
+			   db_local.set_statement(db_local.get_connection().prepareStatement(query));
+			   db_local.set_resultset(db_local.get_statement().executeQuery());
+			   System.out.println("query execute");
+			   if(db_local.get_resultset().next())
+			    result =db_local.get_resultset().getRow();
+			   System.out.println("result : "+result);
+			   return result;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return -1;
+		}
+		   
+	   }
 	   public void RequestReservation(String user_id, String reserve_time,BufferedWriter out){
-		   Database db_local = new Database("192.168.1.138","root","1234");
+		   Database db_local = new Database("localhost","root","1234");
+		   System.out.println("Request Reservation DB connection complete");
 		   String reservation_code = get_reservation_code();
 		   System.out.println(reservation_code);
 
@@ -58,9 +78,9 @@ public class CentralServer extends Thread {
 			   db_local.set_statement(db_local.get_connection().prepareStatement(query_local));
 				db_local.get_statement().executeUpdate();
 		        System.out.println("local RequestReservation Complete ");
-		        out.write("Accept "+reservation_code);
+		        out.write("1 "+user_id+" "+reservation_code);
 		        out.flush();
-		       System.out.println("central RequestReservation Complete");
+		     
 		        
 		   } 
 		   catch (SQLException e) {
@@ -75,6 +95,13 @@ public class CentralServer extends Thread {
 		   queue.add("4 reserve_request");
 		   try {
 			Thread.sleep(200);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		   System.out.println("transfer reserve_request to ParkingEvent.java");
+		   try {
+			Thread.sleep(200);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -87,7 +114,7 @@ public class CentralServer extends Thread {
 		   
 		  ServerSocket serverSocket = null;							// Server socket object
 		   Socket clientSocket = null;
-		   int portNum = 1004;
+		   int portNum = 1000;
 		   int msgNum = 0;												// Message to display from serverMsg[]
 	       String inputLine;											// Data from client
 		   
@@ -132,28 +159,38 @@ public class CentralServer extends Thread {
 	    	 	* At this point we are all connected and we need to create the streams so
 	    	 	* we can read and write.
 			 	*****************************************************************************/
-    	    	System.out.println ("Connection successful");
+    	    	System.out.println ("Socket : "+portNum+" Connection successful");
     	    	
     	    
-		    	
+		        System.out.println("Central Server Buffer load");
 	    		try{
 	    	  	out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 	      		BufferedReader in = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
 	    		String result ="";
 	    		
 	    	
-	    		if((result=in.readLine())!=null){
+	    		if((result = in.readLine())!= null){
+	    			System.out.println("result : "+result);
 	    			String data[];
 	    			data = result.split(" ");
+	    			
 	    			String id = data[0];
 	    			
 		    		String reserve_data = data[1].concat(" "+data[2]);
-	    			
+		    		System.out.println("ready number_of_reservation");
+		    		int number_of_reservation = number_of_reservation();
+		    		System.out.println("number_of_reservation : "+number_of_reservation);
+	    			if((number_of_reservation>-1)&&(number_of_reservation<4)){
+	    			System.out.println("resevation accept");
 	    			RequestReservation(id,reserve_data,out);
-	    			System.out.println("data[0] : "+data[0]+"data[1] : "+data[1]+"data[2] :"+data[2]);
-	    			System.out.println("result : "+result);
+	    			}
+	    			else{
+	    				out.write("2");
+	    			    out.flush();
+	    			}
 	    			
 	    		}
+	    		
 	    		
 	        		out.close();
 	        		in.close();

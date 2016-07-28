@@ -40,19 +40,21 @@ import java.text.SimpleDateFormat;
 import java.io.*;
 
 class Ingate_server extends Thread {
-	String local_server = "192.168.1.138";
-	String central_server = "192.168.1.5";
+	String local_server = "192.168.1.136";
+	String central_server = "192.168.1.3";
 	private int id = -1;
 	String parking_state = "0000";
 	String parking_reserve_state="0000";
 	BlockingQueue queue;
+	BlockingQueue client_queue;
 	int parking_lot_buff;
 	String user_id;
 	String reservation_code = "";
 
-	public Ingate_server(int id, BlockingQueue _queue) {
+	public Ingate_server(int id, BlockingQueue _queue, BlockingQueue _client_queue) {
 		this.id = id;
 		this.queue = _queue;
+		this.client_queue = _client_queue;
 
 	}
 
@@ -81,13 +83,12 @@ class Ingate_server extends Thread {
 		}
 	}
 	public void update_reserve_state(String _reservation_code, int reserve_state, int parking_spot){
-		Database local_db = new Database(local_server,"root","1234");
+		Database local_db = new Database("localhost","root","1234");
 		
 		String user_id = get_user_id(_reservation_code);
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 		Calendar cal = Calendar.getInstance();
-		String today = null;
-		today= formatter.format(cal.getTime());
+		Date date = cal.getTime();
+		String today = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date));
 		Timestamp central_today = Timestamp.valueOf(today);
 		String query="";
 		String central_query="";
@@ -97,8 +98,9 @@ class Ingate_server extends Thread {
 		System.out.println("Auth query : "+query);
 		}
 		else if(reserve_state ==2){
-			query ="Update sure_park.reservation set " + "`" + "RESERVE_STATE" + "`" + "=" + "'" + reserve_state + "'"+"`"+"ASSIGNED_PARKING_SPOT"+"`"+"= "+"'"+parking_spot+"'"+ "where " + "`" + "RESERVATION_ID" + "`" + "=" + "'"+_reservation_code+"'";
-			queue.add("5 "+" "+user_id+" "+today+" "+parking_spot);
+			query ="Update sure_park.reservation set " + "`" + "RESERVE_STATE" + "`" + "=" + "'" + reserve_state + "'"+","+"`"+"ASSIGNED_PARKING_SPOT"+"`"+"= "+"'"+parking_spot+"'"+ "where " + "`" + "RESERVATION_ID" + "`" + "=" + "'"+_reservation_code+"'";
+			System.out.println("ocupy_query : "+query);
+			client_queue.add("5"+" "+user_id+" "+today+" "+parking_spot);
 			try {
 				Thread.sleep(200);
 			} catch (InterruptedException e) {
@@ -161,7 +163,7 @@ class Ingate_server extends Thread {
 	}
 
 	public int get_charge_time(String _end_time, int parking_spot) {
-		Database db = new Database(local_server, "root", "1234");
+		Database db = new Database("localhost", "root", "1234");
 		String query = "Select" + "`" + "PARKING_START_TIME" + "`" + "from" + "`" + "sure_park" + "`" + "." + "`"
 				+ "reservation" + "`" + "where" + "`" + "ASSIGNED_PARKING_SPOT" + "`" + "=" + parking_spot;
 		try {
@@ -200,7 +202,7 @@ class Ingate_server extends Thread {
 
 	public float calculate_charge(String _end_time, int parking_spot) {
 		System.out.println("_end_time :" + _end_time);
-		Database db = new Database(local_server, "root", "1234");
+		Database db = new Database("localhost", "root", "1234");
 		System.out.println("calculate_charge_DB_Connection complete");
 		String query = "Select" + "`" + "PARKING_START_TIME" + "`" + "from" + "`" + "sure_park" + "`" + "." + "`"
 				+ "reservation" + "`" + "where" + "`" + "ASSIGNED_PARKING_SPOT" + "`" + "=" + parking_spot;
@@ -238,16 +240,16 @@ class Ingate_server extends Thread {
 
 	}
 
-	public int exit_process(int parking_slot, String time, float charge, BlockingQueue _queue) {
-		Database db = new Database(local_server, "root", "1234");
+	public int exit_process(int parking_slot, String end_time, float charge, BlockingQueue _queue) {
+		Database db = new Database("localhost", "root", "1234");
 		String user_id = get_user_id(parking_slot);
-		String query = "Update sure_park.reservation set" + "`" + "PARKING_END_TIME" + "`" + "=" + "'" + time + "'"
+		String query = "Update sure_park.reservation set" + "`" + "PARKING_END_TIME" + "`" + "=" + "'" + end_time + "'"
 				+ "," + "`" + "CHARGED_FEE" + "`" + "=" + "'" + charge + "'" + " where " + "`" + "ASSIGNED_PARKING_SPOT" + "`" + "=" + parking_slot;
 		System.out.println(query);
 		try {
 			db.set_statement(db.get_connection().prepareStatement(query));
 			db.get_statement().executeUpdate();
-			_queue.add("6 "+user_id+" "+time+" "+charge);
+			_queue.add("6 "+user_id+" "+end_time+" "+charge);
 			try {
 				Thread.sleep(200);
 			} catch (InterruptedException e) {
@@ -263,7 +265,7 @@ class Ingate_server extends Thread {
 	
 
 	public String get_user_id(String reservation_code) {
-		Database db = new Database(local_server, "root", "1234");
+		Database db = new Database("localhost", "root", "1234");
 		String query = "SELECT" + " USER_ID" + " from sure_park.reservation" + " where" + "`" + "RESERVATION_ID" + "`"
 				+ "=" + "'" + reservation_code + "'";
 		try {
@@ -285,7 +287,7 @@ class Ingate_server extends Thread {
 
 	public String get_user_id(int parking_spot) {
 		char ch = (char) (parking_spot + 48);
-		Database db = new Database(local_server, "root", "1234");
+		Database db = new Database("localhost", "root", "1234");
 		String query = "SELECT * FROM sure_park.reservation";
 
 		try {
@@ -306,7 +308,7 @@ class Ingate_server extends Thread {
 	}
 	public void Delete_reservation(String _user_id) {
 		
-		Database db = new Database(local_server, "root", "1234");
+		Database db = new Database("localhost", "root", "1234");
 		String query = "DELETE FROM sure_park.reservation where USER_ID ="+"'"+_user_id+"'";
 		try {
 			db.set_statement(db.get_connection().prepareStatement(query));
@@ -320,7 +322,7 @@ class Ingate_server extends Thread {
 		
 	}
 	public void Update_simulation(String _reservation_code){
-		Database db = new Database(local_server, "root", "1234");
+		Database db = new Database("localhost", "root", "1234");
 		String query = "Update sure_park.reservation set" + "`" + "RESERVE_STATE" + "`" + "=" + "'" + 0 + "'"
 				 + " where " + "`" + "RESERVATION_ID" + "`" + "=" +"'"+ _reservation_code+"'";
 		System.out.println(query);
@@ -342,6 +344,7 @@ class Ingate_server extends Thread {
 		ServerSocket serverSocket = null; // Server socket object
 		Socket clientSocket = null;
 		int portNum = 1005;
+	
 
 		while (true) {
 			/*****************************************************************************
@@ -351,6 +354,7 @@ class Ingate_server extends Thread {
 			try {
 				serverSocket = new ServerSocket(portNum);
 				System.out.println("\n\nWaiting for connection on port " + portNum + ".");
+				System.out.println("Local Information : "+serverSocket.getLocalSocketAddress()+" "+serverSocket.getLocalPort());
 			} catch (IOException e) {
 
 				System.err.println("\n\nCould not instantiate socket on port: " + portNum + " " + e);
@@ -368,6 +372,7 @@ class Ingate_server extends Thread {
 			try {
 
 				clientSocket = serverSocket.accept();
+				System.out.println("clientsocket accept Complete");
 			} catch (Exception e) {
 				System.err.println("Accept failed.");
 				System.exit(1);
@@ -377,10 +382,9 @@ class Ingate_server extends Thread {
 			 * At this point we are all connected and we need to create the
 			 * streams so we can read and write.
 			 *****************************************************************************/
-			System.out.println("Connection successful");
+			System.out.println("Socket : "+portNum+"Connection successful");
 
 			try {
-				queue.add("4 reservation request");
 				BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 				System.out.println("Initiate Buffer complete");
@@ -496,10 +500,10 @@ class Ingate_server extends Thread {
 						System.out.println("Sending Message to Arduino : " + "5 " + release_user_id + " " + charge_time + " "
 								+ cal_charge + "\n");
 						queue.add("2 Open end_gate");
-						exit_process(parking_spot, today, cal_charge,queue);// 새로운
+						exit_process(parking_spot, today, cal_charge,client_queue);// 새로운
 																		// 내용으로
 																		// 업데이트
-						Delete_reservation(release_user_id);
+						//Delete_reservation(release_user_id);
 						
 						break;
 					case 6:
@@ -514,10 +518,15 @@ class Ingate_server extends Thread {
 				}
 				queue.add("1 " + this.parking_reserve_state);
 				Thread.sleep(200);
+				
 				out.close();
+				System.out.println("Ingate_server out close complete");
 				in.close();
+				System.out.println("Ingate_server in close complete");
 				clientSocket.close();
+				System.out.println("Ingate_server clientsocket close complete");
 				serverSocket.close();
+				System.out.println("Ingate_server serversocket close complete");
 				
 			} catch (Exception e) {
 				System.out.println(e.getMessage());

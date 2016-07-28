@@ -8,16 +8,18 @@ public class DataController {
 
 		   public static void main(String[] args) throws IOException {
 			   BlockingQueue queue = new ArrayBlockingQueue(100);
+			   BlockingQueue client_queue = new ArrayBlockingQueue(100);
 			   
 			   
-			   
-			   Ingate_server s1 = new Ingate_server(1, queue);
+			   Ingate_server s1 = new Ingate_server(1, queue, client_queue);
 			   CentralServer s2 = new CentralServer(2, queue);
+			   CentralClient s3 = new CentralClient(4, client_queue);
 			   
 			   ParkingAttendantApp app = new ParkingAttendantApp(3,queue);
 			   ParkingEvent e1 = new ParkingEvent(app,queue, s1, s2);
 			   s1.start();
 			   s2.start();
+			  // s3.start();
 			   app.run();
 			   e1.run();
 			   

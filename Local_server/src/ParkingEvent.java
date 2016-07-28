@@ -6,20 +6,23 @@ public class ParkingEvent extends Thread {
 	ParkingAttendantApp app;
 	BlockingQueue queue;
 	Ingate_server ingate;
-	CentralServer central;
-	
+	CentralServer central_server;
+		
 
-	ParkingEvent(ParkingAttendantApp _app, BlockingQueue _queue, Ingate_server _ingate, CentralServer _central) {
+	ParkingEvent(ParkingAttendantApp _app, BlockingQueue _queue, Ingate_server _ingate, CentralServer _central_server) {
 		this.app = _app;
 		this.queue = _queue;
 		this.ingate = _ingate;
-		this.central = _central;
+		this.central_server = _central_server;
+		
 	}
 
 	public void run() {
 		while (true) {
 			try {
-				String Command_arbitor = (String) queue.take();
+				String Command_arbitor="";
+				if(queue.isEmpty()==false){
+				Command_arbitor = (String) queue.take();
 				
 				if (Command_arbitor.charAt(0) == '1') { // 11000
 					System.out.println("1 Command_arbitor : " + Command_arbitor);
@@ -75,19 +78,11 @@ public class ParkingEvent extends Thread {
 				         }
 
 				}
-				else if(Command_arbitor.charAt(0)=='5'){//occupy starttime transfer
-					central.resMsg = "2 "+Command_arbitor.substring(1);
-					central.transfer_to_central(central.resMsg, central.out);
-					
-				}
-				else if(Command_arbitor.charAt(0)=='6'){//Exit endtime transfer
-					central.resMsg = "3 "+Command_arbitor.substring(1);
-					central.transfer_to_central(central.resMsg,central.out);
-					
-				}
+				
 				
 				else{
 					
+				}
 				}
 			} catch (InterruptedException e1) {
 				// TODO Auto-generated catch block
