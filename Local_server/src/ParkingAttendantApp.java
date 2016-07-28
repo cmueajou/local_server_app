@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PipedInputStream;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.concurrent.BlockingQueue;
 
 import javax.swing.JButton;
@@ -37,7 +40,7 @@ public class ParkingAttendantApp implements Runnable{
 	   protected static JPanel PAUI_p2_Info_gatestate_gate[] = new JPanel[2];
 	   protected static JLabel PAUI_p2_info_carNum = new JLabel("Total Car: ");
 	   
-	   private int id = -1;
+	   public int id = -1;
 	   protected JTextField AccountText;
 	   protected JTextField PINText;
 	   
@@ -57,12 +60,13 @@ public class ParkingAttendantApp implements Runnable{
    public ParkingAttendantApp(int id, BlockingQueue _queue){
       this.id = id;
       this.queue = _queue;
+  
    }
    
   
    public void run() {
-	   
-	 
+		
+
       Container cp = jframe.getContentPane();
       
       jframe.setLayout(new BorderLayout());
@@ -96,20 +100,25 @@ public class ParkingAttendantApp implements Runnable{
     	
     	 
          public void actionPerformed(ActionEvent e) {
-        
             if(AccountText.getText().equals(ID)&& PINText.getText().equals(Pin)){
                jframe.remove(LoginPanel);
-               PAUI UI = new PAUI(id,queue);
+               Calendar calendar = Calendar.getInstance();
+     	      SimpleDateFormat df = new SimpleDateFormat("MM-dd HH:mm:ss");
+     	     
+     	       JLabel time = new JLabel("Time :"+df.format(calendar.getTime()));;
+     		
+               PAUI UI = new PAUI(id,queue,time);
                jframe.revalidate();
                jframe.repaint();
              
                   
                }
+           
                else{
                   JOptionPane.showMessageDialog( null, String.format("Wrong Id or pin number") );
                }
         	 }
-            
+         
         
       };
       

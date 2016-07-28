@@ -19,9 +19,13 @@ public class CentralServer extends Thread {
 	  BlockingQueue queue;
 	  String resMsg="";
 	  BufferedWriter out;
+	  Database db_local;
+	  String user_id;
+	  String reservation_start_time;
 	   public CentralServer(int id, BlockingQueue _queue){
 	      this.id = id;
 	      this.queue = _queue;
+	      this.db_local = new Database("localhost","root","1234");
 	      
 	     
 	   }
@@ -44,7 +48,7 @@ public class CentralServer extends Thread {
 		   
 	   }
 	   public int number_of_reservation(){
-		   Database db_local = new Database("localhost","root","1234");
+		   
 		   String query = "SELECT * from sure_park.reservation";
 		   int result=0;
 		   try {
@@ -53,6 +57,8 @@ public class CentralServer extends Thread {
 			   System.out.println("query execute");
 			   if(db_local.get_resultset().next())
 			    result =db_local.get_resultset().getRow();
+			   user_id = db_local.get_resultset().getString("USER_ID");
+			   reservation_start_time = db_local.get_resultset().getString("RESERVATION_START_TIME");
 			   System.out.println("result : "+result);
 			   return result;
 		} catch (SQLException e) {
@@ -63,7 +69,6 @@ public class CentralServer extends Thread {
 		   
 	   }
 	   public void RequestReservation(String user_id, String reserve_time,BufferedWriter out){
-		   Database db_local = new Database("localhost","root","1234");
 		   System.out.println("Request Reservation DB connection complete");
 		   String reservation_code = get_reservation_code();
 		   System.out.println(reservation_code);
@@ -92,7 +97,7 @@ public class CentralServer extends Thread {
 			   System.out.println("transfer to central message error");
 			   e.printStackTrace();
 		   }
-		   queue.add("4 reserve_request");
+		   queue.add("4 reserve_request");//reserve_state 최신화 요청
 		   try {
 			Thread.sleep(200);
 		} catch (InterruptedException e1) {
@@ -109,6 +114,8 @@ public class CentralServer extends Thread {
 		  
 		   
 	   }
+
+	   
 	   
 	   public void run() { 
 		   
@@ -188,6 +195,12 @@ public class CentralServer extends Thread {
 	    				out.write("2");
 	    			    out.flush();
 	    			}
+	    			
+	    		}
+	    		String resMsg = (String)queue.take();
+	    		if(resMsg.charAt(0)=='7'){
+	    			out.write("7 "+user_id+" "+reservation_start_time);
+	    			out.flush();
 	    			
 	    		}
 	    		

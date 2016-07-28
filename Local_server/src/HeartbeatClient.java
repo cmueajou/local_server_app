@@ -3,41 +3,25 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.sql.SQLException;
 import java.util.concurrent.BlockingQueue;
 
-public class CentralClient extends Thread {
+public class HeartbeatClient extends Thread {
 	private int id = -1;
 	int portNum;
-	BlockingQueue queue;
 	String resMsg = "";
 	BufferedWriter out;
+	BufferedReader in;
+	String localhost = "192.168.1.136";
 	String server_ip = "192.168.1.3";
+	int term_of_transmit = 30;
 
-	public CentralClient(int id, BlockingQueue _queue) {
+	public HeartbeatClient(int id) {
 		this.id = id;
-		this.queue = _queue;
-
-	}
-
-	public String get_reservation_code() {
-		String code = "";
-		Reserve_code r1 = new Reserve_code();
-		code = r1.nextSessionId();
-
-		return r1.generate_Code(code);
-	}
-
-	public void transfer_to_central(String msg, BufferedWriter _out) {
-		try {
-			_out.write(msg);
-			_out.flush();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
 
@@ -45,7 +29,7 @@ public class CentralClient extends Thread {
 
 		ServerSocket serverSocket = null; // Server socket object
 		Socket clientSocket = null;
-		int portNum = 1006;
+		int portNum = 1818;
 		int msgNum = 0; // Message to display from serverMsg[]
 		String inputLine; // Data from client
 
@@ -74,21 +58,59 @@ public class CentralClient extends Thread {
 
 			try {
 				out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
-				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-				String result = "";
-				System.out.println("port :" + portNum + "start");
-				resMsg = (String) queue.take();
-				System.out.println("port :" + portNum + " Mesg : " + resMsg);
-				out.write(resMsg);
+				in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+				
+				Thread.sleep(1000 * this.term_of_transmit);
+				System.out.println("HeratBeat : "+localhost + " "+ "Heart_beat");
+				out.write(localhost + " Heart_Beat");
 				out.flush();
 
 				out.close();
 				in.close();
 				clientSocket.close();
-				serverSocket.close();
-			} catch (Exception e) {
-				System.out.println(e.getMessage());
+				//serverSocket.close();
+			} catch (ConnectException ex) {
+				System.out.println(ex.getMessage());
+				
+				try {
+					in.close();
+					out.close();
+					clientSocket.close();
+					//serverSocket.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			}catch(SocketException socket_exception){
+				
+				System.out.println("SocketException occur");
+				try {
+					in.close();
+					out.close();
+					clientSocket.close();
+					//serverSocket.close();
+				} catch (IOException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}
+				
 			}
+			catch( Exception e){
+				System.out.println(e.getMessage());
+				try {
+					in.close();
+					out.close();
+					clientSocket.close();
+					//serverSocket.close();
+				} catch (IOException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}
+				
+			} 
+			
 		}
 	}
 }

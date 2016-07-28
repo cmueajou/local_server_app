@@ -3,8 +3,11 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.TextEvent;
+import java.awt.event.TextListener;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -41,24 +44,29 @@ public class PAUI extends ParkingAttendantApp{
    protected int currentCarNum = 0;
 
    Database db;
+   JLabel PAUI_p2_info_time;
    
    
-   public PAUI(int id ,BlockingQueue queue) {
+   public PAUI(int id ,BlockingQueue queue, JLabel timer) {
+	   
       super(id, queue);
+      db= new Database("localhost","root","1234");
+      
       JPanel p = new JPanel();
       p.setLayout(new BorderLayout());
-      db= new Database("localhost","root","1234");
       JPanel PAUI_p1 = new JPanel();
       PAUI_p1.setLocation(0, 0);
       PAUI_p1.setSize(800,50);
+      PAUI_p2_info_time = timer;
       //PAUI_p1.setLayout(new FlowLayout());
+    
       
       JLabel PAUI_p1_title = new JLabel("CMU Parking lot(Pittsburgh)             ");
       PAUI_p1_title.setLocation(20,0);
       JButton PAUI_p1_authenticationButton = new JButton("user Autentication");
-      PAUI_p1_authenticationButton.setLocation(600,0);
-      final JTextField PAUI_p1_Code = new JTextField(5);
-      PAUI_p1_Code.setLocation(670,0);
+      PAUI_p1_authenticationButton.setLocation(600,300);
+      final JTextField PAUI_p1_Code = new JTextField(20);
+      PAUI_p1_Code.setLocation(900,400);
       
       PAUI_p1.add(PAUI_p1_title);
       PAUI_p1.add(PAUI_p1_authenticationButton);
@@ -67,11 +75,25 @@ public class PAUI extends ParkingAttendantApp{
       ActionListener a1 = new ActionListener() {
          public void actionPerformed(ActionEvent e) {
             
-            /*유저 인증과정
-             * userAutentication = 함수 해서 리턴값 true면 인증된거 아니면 안된거
-             * */
+           String query = "Select * from sure_park.reservation";
+           String reservation_code ="";
+           String user_id="";
+          try {
+   			db.set_statement(db.get_connection().prepareStatement(query));
+   			db.set_resultset(db.get_statement().executeQuery());
+   			while(db.get_resultset().next()){
+   				reservation_code = db.get_resultset().getString("RESERVATION_ID");
+   				
+   			}
+   				
+   				
+   		} catch (SQLException ex) {
+   			// TODO Auto-generated catch block
+   			ex.printStackTrace();
+   			
+   		}
             if(PAUI_p1_Code.getText().equals("1")){
-               int a = 123;
+              int a =123;
                JOptionPane.showMessageDialog( null, String.format("Welcome \n parking lot NO: " + a) );
             }
             else
@@ -101,11 +123,17 @@ public class PAUI extends ParkingAttendantApp{
       
       JButton PAUI_p2_parkingLot_infoButton[] = new JButton[4];
       JLabel PAUI_p2_parkingLot_No[] = new JLabel[4];
-      
+      char[] reserve_buff = super.parking_reserve_status.toCharArray();
+      char[] parking_state_buff = super.parking_status.toCharArray();
       for(int i = 0 ; i < 4 ; i++){
          PAUI_p2_parkingLot_space[i] = new JPanel();
          PAUI_p2_parkingLot_space[i].setSize(120,300);
+         if(reserve_buff[i] =='0' && parking_state_buff[i]=='0')
          PAUI_p2_parkingLot_space[i].setBackground(Color.green);
+         else if(reserve_buff[i] =='2'&&parking_state_buff[i]=='0')
+        	 PAUI_p2_parkingLot_space[i].setBackground(Color.blue);
+         else if(reserve_buff[i] =='0'&&parking_state_buff[i]=='1')
+        	 PAUI_p2_parkingLot_space[i].setBackground(Color.red);
          PAUI_p2_parkingLot_infoButton[i] = new JButton("Info");
          PAUI_p2_parkingLot_No[i] = new JLabel(Integer.toString(i+1));
          
@@ -376,16 +404,12 @@ public class PAUI extends ParkingAttendantApp{
       PAUI_p1_authenticationButton.addActionListener(b1);
       
       
-      Calendar calendar = Calendar.getInstance();
-      SimpleDateFormat df = new SimpleDateFormat("HH:mm");
-      System.out.println(df.format(calendar.getTime()));
+     
       
-      JLabel PAUI_p2_info_time = new JLabel("Time :"+df.format(calendar.getTime()));
+     // JLabel PAUI_p2_info_gateState = new JLabel("GateState");
       
-      JLabel PAUI_p2_info_gateState = new JLabel("GateState");
-      
-      PAUI_p2_info.add(PAUI_p2_info_time);
-      PAUI_p2_info.add(PAUI_p2_info_carNum);
+     // PAUI_p2_info.add(PAUI_p2_info_time);
+     // PAUI_p2_info.add(PAUI_p2_info_carNum);
       //PAUI_p2_info.add(PAUI_p2_info_gateState);
       
       for(int i= 0 ; i < 2 ; i++){
@@ -424,7 +448,10 @@ public class PAUI extends ParkingAttendantApp{
       //PAUI_p2.setSize(800,500);
       //PAUI_p3.setLocation(0, 600);
       //PAUI_p3.setSize(600,40);
-      
-   }
+      }
+   
+
+
+
    
 }
